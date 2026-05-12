@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión — Sistema de Contribuciones{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { background: linear-gradient(135deg, #1a3a5c 0%, #2e7d9e 100%); }
+  .login-wrap {
+    max-width: 420px;
+    margin: 5vh auto 2rem;
+  }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .login-logo .icon { font-size: 3rem; }
+  .login-logo h1 { color: #fff; font-size: 1.25rem; margin-top: .4rem; font-weight: 700; }
+  .login-logo p  { color: rgba(255,255,255,.7); font-size: .88rem; margin-top: .2rem; }
+  #id_username, #id_password {
+    width: 100%;
+    padding: .55rem .85rem;
+    border: 1.5px solid #cbd5e0;
+    border-radius: 6px;
+    font-size: .95rem;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  #id_username:focus, #id_password:focus {
+    outline: none;
+    border-color: #2e7d9e;
+    box-shadow: 0 0 0 3px rgba(46,125,158,.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-wrap">
+  <div class="login-logo">
+    <div class="icon">🏛</div>
+    <h1>Gestión de Contribuciones</h1>
+    <p>Sistema de Patrimonio — Inicie sesión para continuar</p>
+  </div>
+
+  <div class="card">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+      <div class="non-field-errors">
+        {% for error in form.non_field_errors %}
+        <div>⚠ {{ error }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label for="{{ form.username.id_for_label }}">Usuario</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <span class="field-error">{% for e in form.username.errors %}{{ e }}{% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.5rem;">
+        <label for="{{ form.password.id_for_label }}">Contraseña</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <span class="field-error">{% for e in form.password.errors %}{{ e }}{% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:.65rem;">
+        🔐 Iniciar Sesión
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

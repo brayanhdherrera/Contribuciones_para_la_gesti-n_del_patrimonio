@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} — Contribuciones{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:860px; margin:0 auto;">
+  <div class="card-header">
+    <span>📝 {{ titulo }}</span>
+    <a href="{% url 'contribuciones:lista' %}" class="btn btn-outline btn-sm">← Volver al listado</a>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="non-field-errors">
+      {% for error in form.non_field_errors %}
+      <div>⚠ {{ error }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="form-grid">
+
+      <!-- Obligación de pago: ocupa todo el ancho -->
+      <div class="form-group full">
+        <label for="{{ form.obligacion_pago.id_for_label }}">
+          {{ form.obligacion_pago.label }}<span class="req">*</span>
+        </label>
+        {{ form.obligacion_pago }}
+        {% if form.obligacion_pago.help_text %}
+          <span class="help-text">{{ form.obligacion_pago.help_text }}</span>
+        {% endif %}
+        {% if form.obligacion_pago.errors %}
+          <span class="field-error">{% for e in form.obligacion_pago.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <!-- N° Identidad -->
+      <div class="form-group">
+        <label for="{{ form.numero_identidad.id_for_label }}">
+          {{ form.numero_identidad.label }}<span class="req">*</span>
+        </label>
+        {{ form.numero_identidad }}
+        {% if form.numero_identidad.help_text %}
+          <span class="help-text">{{ form.numero_identidad.help_text }}</span>
+        {% endif %}
+        {% if form.numero_identidad.errors %}
+          <span class="field-error">{% for e in form.numero_identidad.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <!-- N° OFA -->
+      <div class="form-group">
+        <label for="{{ form.numero_contribuyente_ofa.id_for_label }}">
+          {{ form.numero_contribuyente_ofa.label }}<span class="req">*</span>
+        </label>
+        {{ form.numero_contribuyente_ofa }}
+        {% if form.numero_contribuyente_ofa.help_text %}
+          <span class="help-text">{{ form.numero_contribuyente_ofa.help_text }}</span>
+        {% endif %}
+        {% if form.numero_contribuyente_ofa.errors %}
+          <span class="field-error">{% for e in form.numero_contribuyente_ofa.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <!-- Código ZPC -->
+      <div class="form-group">
+        <label for="{{ form.codigo_zpc.id_for_label }}">
+          {{ form.codigo_zpc.label }}<span class="req">*</span>
+        </label>
+        {{ form.codigo_zpc }}
+        {% if form.codigo_zpc.help_text %}
+          <span class="help-text">{{ form.codigo_zpc.help_text }}</span>
+        {% endif %}
+        {% if form.codigo_zpc.errors %}
+          <span class="field-error">{% for e in form.codigo_zpc.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <!-- Tipo de cuenta -->
+      <div class="form-group">
+        <label for="{{ form.tipo_cuenta.id_for_label }}">
+          {{ form.tipo_cuenta.label }}<span class="req">*</span>
+        </label>
+        {{ form.tipo_cuenta }}
+        {% if form.tipo_cuenta.errors %}
+          <span class="field-error">{% for e in form.tipo_cuenta.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <!-- Mes del período -->
+      <div class="form-group">
+        <label for="{{ form.periodo_mes.id_for_label }}">
+          {{ form.periodo_mes.label }}<span class="req">*</span>
+        </label>
+        {{ form.periodo_mes }}
+        {% if form.periodo_mes.errors %}
+          <span class="field-error">{% for e in form.periodo_mes.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <!-- Año del período -->
+      <div class="form-group">
+        <label for="{{ form.periodo_anio.id_for_label }}">
+          {{ form.periodo_anio.label }}<span class="req">*</span>
+        </label>
+        {{ form.periodo_anio }}
+        {% if form.periodo_anio.help_text %}
+          <span class="help-text">{{ form.periodo_anio.help_text }}</span>
+        {% endif %}
+        {% if form.periodo_anio.errors %}
+          <span class="field-error">{% for e in form.periodo_anio.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <!-- Monto CUP -->
+      <div class="form-group">
+        <label for="{{ form.monto_cup.id_for_label }}">
+          {{ form.monto_cup.label }}<span class="req">*</span>
+        </label>
+        {{ form.monto_cup }}
+        {% if form.monto_cup.help_text %}
+          <span class="help-text">{{ form.monto_cup.help_text }}</span>
+        {% endif %}
+        {% if form.monto_cup.errors %}
+          <span class="field-error">{% for e in form.monto_cup.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+    </div><!-- /form-grid -->
+
+    <p style="font-size:.78rem; color:#a0aec0; margin-top:1rem;">
+      <span class="req">*</span> Campos obligatorios
+    </p>
+
+    <!-- Botones: Aceptar / Cancelar -->
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary">✔ Aceptar</button>
+      <a href="{% url 'contribuciones:lista' %}" class="btn btn-secondary">✖ Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Contribución #{{ contribucion.pk }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:520px; margin:3rem auto; text-align:center;">
+  <div class="card-header" style="justify-content:center; color: #c0392b; border-bottom-color:#fecaca;">
+    ⚠ Confirmar Eliminación
+  </div>
+
+  <p style="margin-bottom:1.1rem; font-size:.95rem;">
+    ¿Está seguro que desea eliminar la contribución
+    <strong>#{{ contribucion.pk }}</strong>?
+  </p>
+
+  <div style="background:#f8fafc; border-radius:8px; padding:1.1rem; margin-bottom:1.25rem;
+              text-align:left; font-size:.875rem; border:1px solid #e2e8f0;">
+    <div style="margin-bottom:.35rem;"><strong>OFA:</strong> {{ contribucion.numero_contribuyente_ofa }}</div>
+    <div style="margin-bottom:.35rem;"><strong>Identidad:</strong> {{ contribucion.numero_identidad }}</div>
+    <div style="margin-bottom:.35rem;"><strong>Período:</strong> {{ contribucion.periodo_display }}</div>
+    <div style="margin-bottom:.35rem;"><strong>Monto CUP:</strong> {{ contribucion.monto_cup|floatformat:2 }}</div>
+    <div><strong>Obligación:</strong> {{ contribucion.obligacion_pago }}</div>
+  </div>
+
+  <div class="alert alert-danger" style="text-align:left; margin-bottom:1.25rem;">
+    ⚠ Esta acción es <strong>irreversible</strong>. El registro será eliminado permanentemente de la base de datos.
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="btn-group" style="justify-content:center;">
+      <button type="submit" class="btn btn-danger">🗑 Sí, eliminar definitivamente</button>
+      <a href="{% url 'contribuciones:lista' %}" class="btn btn-secondary">✖ Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
