@@ -7,7 +7,7 @@ Backend Django + PostgreSQL — CRUD completo con autenticación, admin personal
 ## 📁 Estructura del proyecto
 
 ```
-patrimonio_project/
+contribuciones_project/
 │
 ├── manage.py
 ├── requirements.txt
@@ -101,13 +101,13 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 
 ```sql
 -- Desde psql o pgAdmin:
-CREATE DATABASE patrimonio_db;
+CREATE DATABASE contribuciones_db;
 ```
 
 O desde terminal:
 
 ```bash
-createdb -U postgres patrimonio_db
+createdb -U postgres contribuciones_db
 ```
 
 ### 5. Aplicar migraciones
@@ -159,8 +159,8 @@ Abrir en el navegador: **http://localhost:8000**
 | `codigo_zpc`               | VARCHAR(20)         | Obligatorio, A-Z 0-9 guiones, 3–20 chars             |
 | `periodo_mes`              | SMALLINT (choices)  | Obligatorio, 1–12, no período futuro                  |
 | `periodo_anio`             | SMALLINT            | Obligatorio, 2000 ≤ año ≤ año actual                 |
-| `monto_cup`                | DECIMAL(12,2)       | Obligatorio, > 0                                      |
-| `tipo_cuenta`              | VARCHAR(20) choices | corriente / ahorro / fiscal / especial               |
+| `monto_cup`                | DECIMAL(12,2)       | Obligatorio, > 0                                     
+| `tipo_cuenta`              | VARCHAR(20) choices | corriente / fiscal
 | `registrado_por`           | FK → User           | Set null on delete, asignado automáticamente          |
 | `fecha_registro`           | TIMESTAMPTZ         | Auto, editable=False                                  |
 | `fecha_modificacion`       | TIMESTAMPTZ         | auto_now                                              |

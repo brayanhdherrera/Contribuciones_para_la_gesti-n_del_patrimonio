@@ -1,17 +1,7 @@
-"""
-Admin para Contribucion.
-Incluye:
-  - list_display, search_fields, list_filter configurados.
-  - Fieldsets por secciones lógicas.
-  - Acción personalizada: exportar selección a CSV.
-  - readonly_fields en campos de auditoría.
-"""
-
-import csv
 from django.contrib import admin
 from django.http import HttpResponse
 from .models import Contribucion
-
+import csv
 
 def exportar_seleccion_csv(modeladmin, request, queryset):
     """Acción de admin: exporta los registros seleccionados como CSV."""

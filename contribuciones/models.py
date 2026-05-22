@@ -27,9 +27,7 @@ MESES = [
 
 TIPOS_CUENTA = [
     ('corriente', 'Cuenta Corriente'),
-    ('ahorro',    'Cuenta de Ahorro'),
     ('fiscal',    'Cuenta Fiscal'),
-    ('especial',  'Cuenta Especial'),
 ]
 
 # ── Validadores ────────────────────────────────────────────────────────────────

@@ -3,9 +3,9 @@ Filtros de template personalizados para la app contribuciones.
 Uso: {% load contribuciones_extras %}
 """
 
-from django import template
+from contribuciones import templates
 
-register = template.Library()
+register = templates.template.Library()
 
 
 @register.filter(name='add_class')
@@ -16,11 +16,6 @@ def add_class(field, css_class):
 
 @register.simple_tag(takes_context=True)
 def query_transform(context, **kwargs):
-    """
-    Preserva los parámetros GET actuales y agrega/reemplaza los indicados.
-    Útil para paginación + filtros combinados.
-    Uso: {% query_transform page=2 %}
-    """
     request = context['request']
     updated = request.GET.copy()
     for k, v in kwargs.items():
