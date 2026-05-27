@@ -1,18 +1,8 @@
-"""
-Modelo Contribucion — núcleo del sistema.
-
-Decisiones de diseño:
-  - FK al usuario de Django para trazabilidad completa (quién registró).
-  - DecimalField para monto (nunca FloatField en valores monetarios).
-  - choices en periodo_mes y tipo_cuenta para integridad de dominio.
-  - Índices en campos de búsqueda frecuente (identidad, OFA, período).
-  - auto_now en fecha_modificacion para auditoría automática.
-"""
-
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator, MinValueValidator
 from django.utils import timezone
+from unfold.admin import ModelAdmin
 
 User = get_user_model()
 
@@ -39,7 +29,7 @@ solo_numeros = RegexValidator(
 
 validar_codigo_zpc = RegexValidator(
     regex=r'^[A-Z0-9\-]{3,20}$',
-    message='Código ZPC inválido. Use letras mayúsculas, números y guiones (3–20 caracteres).'
+    message='Código ZPC inválido. Use letras mayúsculas, números y guione s (3–20 caracteres).'
 )
 
 
@@ -49,34 +39,37 @@ class Contribucion(models.Model):
     """Registro de una contribución al patrimonio."""
 
     # Datos del contribuyente
-    obligacion_pago = models.CharField(
-        'Obligación de Pago',
-        max_length=100,
-        help_text='Descripción o código de la obligación de pago.',
-    )
-    numero_identidad = models.CharField(
-        'Número de Identidad',
+    carnet_identidad = models.CharField(
+        'Carnet de Identidad',
         max_length=11,
-        validators=[solo_numeros],
-        help_text='CI cubano: exactamente 11 dígitos.',
+        unique=True,
+        validators=[
+            RegexValidator(r'^\d{11}$', 'Debe tener exactamente 11 dígitos numéricos.')
+        ],
     )
-    numero_contribuyente_ofa = models.CharField(
-        'Número de Contribuyente OFA',
-        max_length=50,
-        validators=[solo_numeros],
-        help_text='Número asignado por la Oficina de la Administración Fiscal.',
+    numero_contribuyente = models.CharField(
+        'Número de Contribuyente',
+        max_length=20,
+        unique=True,
+        validators=[
+            RegexValidator(r'^\d+$', 'Solo se permiten dígitos numéricos.')
+        ],
     )
     codigo_zpc = models.CharField(
         'Código ZPC',
         max_length=20,
-        validators=[validar_codigo_zpc],
-        help_text='Zona de Planificación y Control. Ej: ZPC-001',
+        validators=[
+            RegexValidator(
+                r'^[A-Z0-9\-]{3,20}$',
+                'Formato inválido. Use mayúsculas, números y guiones (3–20 caracteres).'
+            )
+        ],
     )
 
     # Período de aporte
-    periodo_mes = models.PositiveSmallIntegerField(
-        'Mes del Período',
-        choices=MESES,
+    periodo_aporte = models.DateField(
+        'Período de Aporte',
+        help_text='Seleccione el mes y año del aporte (día = 1).',
     )
     periodo_anio = models.PositiveSmallIntegerField(
         'Año del Período',
@@ -84,13 +77,12 @@ class Contribucion(models.Model):
         help_text='Año del período de aporte. Ej: 2024',
     )
 
-    # Monto
-    monto_cup = models.DecimalField(
-        'Monto en CUP',
+    # Monto_en_CUP
+    monto_pagar = models.DecimalField(
+        'Monto a Pagar (CUP)',
         max_digits=12,
         decimal_places=2,
-        validators=[MinValueValidator(0.01)],
-        help_text='Monto en pesos cubanos. Ej: 1500.00',
+        validators=[MinValueValidator(0.01, 'El monto debe ser mayor a cero.')],
     )
 
     # Tipo de cuenta
@@ -99,25 +91,8 @@ class Contribucion(models.Model):
         max_length=20,
         choices=TIPOS_CUENTA,
     )
+    fecha_registro = models.DateTimeField(auto_now_add=True)
 
-    # Auditoría
-    registrado_por = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='contribuciones',
-        verbose_name='Registrado por',
-    )
-    fecha_registro = models.DateTimeField(
-        'Fecha de Registro',
-        default=timezone.now,
-        editable=False,
-    )
-    fecha_modificacion = models.DateTimeField(
-        'Última Modificación',
-        auto_now=True,
-    )
 
     class Meta:
         verbose_name        = 'Contribución'
@@ -141,3 +116,4 @@ class Contribucion(models.Model):
     def periodo_display(self):
         """Período formateado: 'Enero 2024'."""
         return f"{self.get_periodo_mes_display()} {self.periodo_anio}"
+    
