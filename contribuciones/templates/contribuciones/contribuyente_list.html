@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Contribuyentes — Listado{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span>👥 Contribuyentes
+      {% if total %}<span style="font-size:.85rem; font-weight:400; color:#718096;">({{ total }} registro{{ total|pluralize }})</span>{% endif %}
+    </span>
+    <a href="{% url 'contribuciones:contribuyente_crear' %}" class="btn btn-primary btn-sm">➕ Nuevo Contribuyente</a>
+  </div>
+
+  <form method="get" class="search-bar">
+    <div class="form-group">
+      <label style="font-size:.78rem; font-weight:600; color:#4a5568;">Buscar</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="CI, N° contribuyente o ZPC...">
+    </div>
+    <div style="display:flex; gap:.4rem; align-items:flex-end;">
+      <button type="submit" class="btn btn-primary btn-sm">🔍 Filtrar</button>
+      <a href="{% url 'contribuciones:contribuyente_lista' %}" class="btn btn-outline btn-sm">✕ Limpiar</a>
+    </div>
+  </form>
+
+  {% if contribuyentes %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>CI</th>
+          <th>N° Contribuyente</th>
+          <th>Código ZPC</th>
+          <th>Tipo de Cuenta</th>
+          <th>Fecha Registro</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in contribuyentes %}
+        <tr>
+          <td style="color:#a0aec0; font-size:.8rem;">{{ c.id }}</td>
+          <td>{{ c.carnet_identidad }}</td>
+          <td><strong>{{ c.numero_contribuyente }}</strong></td>
+          <td><code style="background:#f0f4f8; padding:.1rem .4rem; border-radius:4px; font-size:.82rem;">{{ c.codigo_zpc }}</code></td>
+          <td><span class="badge badge-{{ c.tipo_cuenta }}">{{ c.get_tipo_cuenta_display }}</span></td>
+          <td style="font-size:.8rem; color:#718096;">{{ c.fecha_registro|date:"d/m/Y H:i" }}</td>
+          <td class="td-actions">
+            <a href="{% url 'contribuciones:contribuyente_detalle' c.pk %}" class="btn btn-outline btn-sm" title="Ver">👁</a>
+            <a href="{% url 'contribuciones:contribuyente_editar' c.pk %}" class="btn btn-primary btn-sm" title="Editar">✏</a>
+            <a href="{% url 'contribuciones:contribuyente_eliminar' c.pk %}" class="btn btn-danger btn-sm" title="Eliminar">🗑</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page=1{% if q %}&q={{ q }}{% endif %}">&laquo;</a>
+      <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">‹ Anterior</a>
+    {% else %}
+      <span class="disabled">&laquo;</span>
+      <span class="disabled">‹ Anterior</span>
+    {% endif %}
+    <span class="current">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">Siguiente ›</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}{% if q %}&q={{ q }}{% endif %}">&raquo;</a>
+    {% else %}
+      <span class="disabled">Siguiente ›</span>
+      <span class="disabled">&raquo;</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📭</div>
+    <p>
+      {% if q %}
+        No se encontraron resultados para <strong>"{{ q }}"</strong>.
+      {% else %}
+        No hay contribuyentes registrados aún.
+      {% endif %}
+    </p>
+    <a href="{% url 'contribuciones:contribuyente_crear' %}" class="btn btn-primary">➕ Registrar primer contribuyente</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

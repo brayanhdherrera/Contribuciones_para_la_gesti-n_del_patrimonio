@@ -22,3 +22,14 @@ urlpatterns = [
     path('<int:pk>/eliminar/',    views.ContribucionDeleteView.as_view(), name='eliminar'),
     path('exportar/csv/',         views.exportar_csv,                     name='exportar_csv'),
 ]
+
+
+# ── URLs Contribuyentes (namespace: contribuyentes) ────────────────────────────
+
+urlpatterns += [
+    path('contribuyentes/',                views.ContribuyenteListView.as_view(),   name='contribuyente_lista'),
+    path('contribuyentes/nuevo/',          views.ContribuyenteCreateView.as_view(), name='contribuyente_crear'),
+    path('contribuyentes/<int:pk>/',       views.ContribuyenteDetailView.as_view(), name='contribuyente_detalle'),
+    path('contribuyentes/<int:pk>/editar/',views.ContribuyenteUpdateView.as_view(), name='contribuyente_editar'),
+    path('contribuyentes/<int:pk>/eliminar/', views.ContribuyenteDeleteView.as_view(), name='contribuyente_eliminar'),
+]

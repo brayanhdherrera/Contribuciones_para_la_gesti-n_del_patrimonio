@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Contribuyente #{{ contribuyente.pk }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:860px; margin:0 auto;">
+  <div class="card-header">
+    <span>👤 Contribuyente #{{ contribuyente.pk }}</span>
+    <div style="display:flex; gap:.5rem;">
+      <a href="{% url 'contribuciones:contribuyente_editar' contribuyente.pk %}" class="btn btn-primary btn-sm">✏ Editar</a>
+      <a href="{% url 'contribuciones:contribuyente_lista' %}" class="btn btn-outline btn-sm">← Volver</a>
+    </div>
+  </div>
+
+  <table class="detail-table">
+    <tr>
+      <td>Carnet de Identidad</td>
+      <td>{{ contribuyente.carnet_identidad }}</td>
+    </tr>
+    <tr>
+      <td>Número de Contribuyente</td>
+      <td><strong>{{ contribuyente.numero_contribuyente }}</strong></td>
+    </tr>
+    <tr>
+      <td>Código ZPC</td>
+      <td><code style="background:#f0f4f8; padding:.1rem .4rem; border-radius:4px;">{{ contribuyente.codigo_zpc }}</code></td>
+    </tr>
+    <tr>
+      <td>Tipo de Cuenta</td>
+      <td><span class="badge badge-{{ contribuyente.tipo_cuenta }}">{{ contribuyente.get_tipo_cuenta_display }}</span></td>
+    </tr>
+    <tr>
+      <td>Fecha de Registro</td>
+      <td>{{ contribuyente.fecha_registro|date:"d/m/Y H:i" }}</td>
+    </tr>
+    <tr>
+      <td>Última Modificación</td>
+      <td>{{ contribuyente.fecha_modificacion|date:"d/m/Y H:i" }}</td>
+    </tr>
+  </table>
+
+  <div class="btn-group">
+    <a href="{% url 'contribuciones:contribuyente_eliminar' contribuyente.pk %}" class="btn btn-danger">🗑 Eliminar</a>
+  </div>
+</div>
+{% endblock %}

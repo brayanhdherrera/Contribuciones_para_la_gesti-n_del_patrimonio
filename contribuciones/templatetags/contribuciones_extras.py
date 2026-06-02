@@ -3,9 +3,9 @@ Filtros de template personalizados para la app contribuciones.
 Uso: {% load contribuciones_extras %}
 """
 
-from contribuciones import templates
+from django import template
 
-register = templates.template.Library()
+register = template.Library()
 
 
 @register.filter(name='add_class')

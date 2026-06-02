@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Contribuyente #{{ contribuyente.pk }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px; margin:0 auto;">
+  <div class="card-header">
+    <span>🗑 Confirmar Eliminación</span>
+    <a href="{% url 'contribuciones:contribuyente_lista' %}" class="btn btn-outline btn-sm">← Cancelar</a>
+  </div>
+
+  <div class="alert alert-danger">
+    ¿Está seguro que desea eliminar al contribuyente <strong>#{{ contribuyente.pk }}</strong>?
+  </div>
+
+  <table class="detail-table" style="margin-bottom:1rem;">
+    <tr>
+      <td>CI</td>
+      <td>{{ contribuyente.carnet_identidad }}</td>
+    </tr>
+    <tr>
+      <td>N° Contribuyente</td>
+      <td>{{ contribuyente.numero_contribuyente }}</td>
+    </tr>
+    <tr>
+      <td>Código ZPC</td>
+      <td>{{ contribuyente.codigo_zpc }}</td>
+    </tr>
+  </table>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="btn-group">
+      <button type="submit" class="btn btn-danger">✔ Sí, eliminar</button>
+      <a href="{% url 'contribuciones:contribuyente_lista' %}" class="btn btn-secondary">✖ Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

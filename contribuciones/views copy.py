@@ -1,3 +1,15 @@
+"""
+Vistas CRUD + exportación CSV para Contribuciones.
+
+Incluye:
+- ContribucionListView   : listado paginado con búsqueda y filtros
+- ContribucionDetailView : detalle
+- ContribucionCreateView : formulario de creación
+- ContribucionUpdateView : formulario de edición
+- ContribucionDeleteView : confirmación y eliminación
+- exportar_csv           : descarga como CSV (requiere login)
+"""
+
 import csv
 from django.http import HttpResponse
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -8,16 +20,21 @@ from django.db.models import Q
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
 )
-from .models import Contribucion, Contribuyente
-from .forms import ContribucionForm, BusquedaForm, ContribuyenteForm
+from .models import Contribucion
+from .forms import ContribucionForm, BusquedaForm
 
+
+# ── Mixin reutilizable: contexto de búsqueda ──────────────────────────────────
 
 class BusquedaMixin:
+    """Inyecta el formulario de búsqueda en el contexto."""
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['busqueda_form'] = BusquedaForm(self.request.GET or None)
         return ctx
 
+
+# ── Listado ────────────────────────────────────────────────────────────────────
 
 class ContribucionListView(LoginRequiredMixin, BusquedaMixin, ListView):
     model              = Contribucion
@@ -27,6 +44,7 @@ class ContribucionListView(LoginRequiredMixin, BusquedaMixin, ListView):
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('registrado_por')
+
         q           = self.request.GET.get('q', '').strip()
         tipo_cuenta = self.request.GET.get('tipo_cuenta', '').strip()
         anio        = self.request.GET.get('anio', '').strip()
@@ -42,6 +60,7 @@ class ContribucionListView(LoginRequiredMixin, BusquedaMixin, ListView):
             qs = qs.filter(tipo_cuenta=tipo_cuenta)
         if anio and anio.isdigit():
             qs = qs.filter(periodo_anio=int(anio))
+
         return qs
 
     def get_context_data(self, **kwargs):
@@ -50,6 +69,8 @@ class ContribucionListView(LoginRequiredMixin, BusquedaMixin, ListView):
         ctx['q']     = self.request.GET.get('q', '')
         return ctx
 
+
+# ── Detalle ────────────────────────────────────────────────────────────────────
 
 class ContribucionDetailView(LoginRequiredMixin, DetailView):
     model               = Contribucion
@@ -74,6 +95,8 @@ class ContribucionDetailView(LoginRequiredMixin, DetailView):
         return ctx
 
 
+# ── Creación ───────────────────────────────────────────────────────────────────
+
 class ContribucionCreateView(LoginRequiredMixin, CreateView):
     model         = Contribucion
     form_class    = ContribucionForm
@@ -95,6 +118,8 @@ class ContribucionCreateView(LoginRequiredMixin, CreateView):
         ctx['accion'] = 'Registrar'
         return ctx
 
+
+# ── Edición ────────────────────────────────────────────────────────────────────
 
 class ContribucionUpdateView(LoginRequiredMixin, UpdateView):
     model         = Contribucion
@@ -120,6 +145,8 @@ class ContribucionUpdateView(LoginRequiredMixin, UpdateView):
         return ctx
 
 
+# ── Eliminación ────────────────────────────────────────────────────────────────
+
 class ContribucionDeleteView(LoginRequiredMixin, DeleteView):
     model               = Contribucion
     template_name       = 'contribuciones/contribucion_confirm_delete.html'
@@ -134,9 +161,33 @@ class ContribucionDeleteView(LoginRequiredMixin, DeleteView):
         return super().form_valid(form)
 
 
+# ── Exportación CSV ────────────────────────────────────────────────────────────
+
 @login_required
+def agregar_contribuyente(request):
+    if request.method == 'POST':
+        form = ContribuyenteForm(request.POST)
+        if form.is_valid():
+            contribuyente = form.save()
+            messages.success(
+                request,
+                f'Contribuyente {contribuyente.carnet_identidad} registrado correctamente.'
+            )
+            return redirect('contribuyente:agregar')
+        else:
+            messages.error(request, 'Corrija los errores marcados en el formulario.')
+    else:
+        form = ContribuyenteForm()
+
+    return render(request, 'contribuyente/form_contribuyente.html', {'form': form})
+
 def exportar_csv(request):
+    """
+    Descarga todas las contribuciones (o el filtro activo) como archivo CSV.
+    Aplica los mismos filtros que la vista de listado.
+    """
     qs = Contribucion.objects.select_related('registrado_por').order_by('-fecha_registro')
+
     q           = request.GET.get('q', '').strip()
     tipo_cuenta = request.GET.get('tipo_cuenta', '').strip()
     anio        = request.GET.get('anio', '').strip()
@@ -155,7 +206,7 @@ def exportar_csv(request):
 
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="contribuciones.csv"'
-    response.write('\ufeff')
+    response.write('\ufeff')   # BOM para compatibilidad con Excel
 
     writer = csv.writer(response)
     writer.writerow([
@@ -176,95 +227,5 @@ def exportar_csv(request):
             c.registrado_por.username if c.registrado_por else '',
             c.fecha_registro.strftime('%d/%m/%Y %H:%M'),
         ])
+
     return response
-
-
-# ── CRUD Contribuyentes ────────────────────────────────────────────────────────
-
-class ContribuyenteListView(LoginRequiredMixin, ListView):
-    model              = Contribuyente
-    template_name      = 'contribuciones/contribuyente_list.html'
-    context_object_name = 'contribuyentes'
-    paginate_by        = 15
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        q = self.request.GET.get('q', '').strip()
-        if q:
-            qs = qs.filter(
-                Q(carnet_identidad__icontains=q) |
-                Q(numero_contribuyente__icontains=q) |
-                Q(codigo_zpc__icontains=q)
-            )
-        return qs
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['q'] = self.request.GET.get('q', '')
-        ctx['total'] = self.get_queryset().count()
-        return ctx
-
-
-class ContribuyenteDetailView(LoginRequiredMixin, DetailView):
-    model               = Contribuyente
-    template_name       = 'contribuciones/contribuyente_detail.html'
-    context_object_name = 'contribuyente'
-
-
-class ContribuyenteCreateView(LoginRequiredMixin, CreateView):
-    model         = Contribuyente
-    form_class    = ContribuyenteForm
-    template_name = 'contribuciones/contribuyente_form.html'
-    success_url   = reverse_lazy('contribuciones:contribuyente_lista')
-
-    def form_valid(self, form):
-        messages.success(self.request, '✔ Contribuyente registrado exitosamente.')
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        messages.error(self.request, '✖ Por favor corrija los errores en el formulario.')
-        return super().form_invalid(form)
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['titulo'] = 'Nuevo Contribuyente'
-        ctx['accion'] = 'Registrar'
-        return ctx
-
-
-class ContribuyenteUpdateView(LoginRequiredMixin, UpdateView):
-    model         = Contribuyente
-    form_class    = ContribuyenteForm
-    template_name = 'contribuciones/contribuyente_form.html'
-    success_url   = reverse_lazy('contribuciones:contribuyente_lista')
-
-    def form_valid(self, form):
-        messages.success(
-            self.request,
-            f'✔ Contribuyente #{self.object.pk} actualizado exitosamente.'
-        )
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        messages.error(self.request, '✖ Por favor corrija los errores en el formulario.')
-        return super().form_invalid(form)
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx['titulo'] = f'Editar Contribuyente #{self.object.pk}'
-        ctx['accion'] = 'Guardar cambios'
-        return ctx
-
-
-class ContribuyenteDeleteView(LoginRequiredMixin, DeleteView):
-    model               = Contribuyente
-    template_name       = 'contribuciones/contribuyente_confirm_delete.html'
-    context_object_name = 'contribuyente'
-    success_url         = reverse_lazy('contribuciones:contribuyente_lista')
-
-    def form_valid(self, form):
-        messages.success(
-            self.request,
-            f'✔ Contribuyente #{self.object.pk} eliminado correctamente.'
-        )
-        return super().form_valid(form)

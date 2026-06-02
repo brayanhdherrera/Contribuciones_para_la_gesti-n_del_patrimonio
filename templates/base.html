@@ -347,8 +347,9 @@
     🏛 Contribuciones al Patrimonio
   </a>
   <div class="navbar-nav">
-    <a href="{% url 'contribuciones:lista' %}">📋 Listado</a>
+    <a href="{% url 'contribuciones:lista' %}">📋 Contribuciones</a>
     <a href="{% url 'contribuciones:crear' %}">➕ Nueva</a>
+    <a href="{% url 'contribuciones:contribuyente_lista' %}">👥 Contribuyentes</a>
     {% if user.is_staff %}
     <a href="{% url 'admin:index' %}">⚙ Admin</a>
     {% endif %}
