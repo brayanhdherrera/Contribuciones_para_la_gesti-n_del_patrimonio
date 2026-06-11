@@ -5,3 +5,4 @@ gunicorn==22.0.0
 whitenoise==6.7.0
 django-unfold==0.81.0
 locust==2.44.1
+openpyxl==3.1.5

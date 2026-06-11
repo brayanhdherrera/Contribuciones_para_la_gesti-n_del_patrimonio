@@ -10,6 +10,8 @@ from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 )
 from django.http import JsonResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from .models import Contribucion, Contribuyente
 from .forms import ContribucionForm, BusquedaForm, ContribuyenteForm
 
@@ -197,7 +199,7 @@ class ContribucionDeleteView(LoginRequiredMixin, DeleteView):
 
 
 @login_required
-def exportar_csv(request):
+def exportar_excel(request):
     qs = Contribucion.objects.select_related('registrado_por').order_by('-fecha_registro')
     q           = request.GET.get('q', '').strip()
     tipo_cuenta = request.GET.get('tipo_cuenta', '').strip()
@@ -216,18 +218,39 @@ def exportar_csv(request):
     if anio and anio.isdigit():
         qs = qs.filter(periodo_anio=int(anio))
 
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="contribuciones.csv"'
-    response.write('\ufeff')
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Contribuciones'
 
-    writer = csv.writer(response)
-    writer.writerow([
+    headers = [
         'ID', 'Nombre/Entidad', 'Obligación de Pago', 'N° Identidad', 'N° Afiliado',
         'Código ZPC', 'Período', 'Monto CUP', 'Tipo de Cuenta',
         'Registrado por', 'Fecha de Registro',
-    ])
-    for c in qs:
-        writer.writerow([
+    ]
+
+    header_font = Font(name='Calibri', bold=True, color='FFFFFF', size=11)
+    header_fill = PatternFill(start_color='2B579A', end_color='2B579A', fill_type='solid')
+    header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin'),
+    )
+
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = thin_border
+
+    data_font = Font(name='Calibri', size=11)
+    data_alignment = Alignment(vertical='center')
+    monto_alignment = Alignment(horizontal='right', vertical='center')
+
+    for row_idx, c in enumerate(qs, 2):
+        row_data = [
             c.pk,
             c.nombre,
             c.obligacion_pago,
@@ -235,11 +258,40 @@ def exportar_csv(request):
             c.numero_afiliado,
             c.codigo_zpc,
             c.periodo_display,
-            c.monto_cup,
+            float(c.monto_cup),
             c.get_tipo_cuenta_display(),
             c.registrado_por.username if c.registrado_por else '',
             c.fecha_registro.strftime('%d/%m/%Y %H:%M'),
-        ])
+        ]
+        for col_idx, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.font = data_font
+            cell.border = thin_border
+            if col_idx == 8:
+                cell.alignment = monto_alignment
+                cell.number_format = '#,##0.00'
+            else:
+                cell.alignment = data_alignment
+
+    ws.column_dimensions['A'].width = 8
+    ws.column_dimensions['B'].width = 35
+    ws.column_dimensions['C'].width = 35
+    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['E'].width = 15
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 18
+    ws.column_dimensions['H'].width = 15
+    ws.column_dimensions['I'].width = 15
+    ws.column_dimensions['J'].width = 22
+    ws.column_dimensions['K'].width = 20
+
+    ws.freeze_panes = 'A2'
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="contribuciones.xlsx"'
+    wb.save(response)
     return response
 
 

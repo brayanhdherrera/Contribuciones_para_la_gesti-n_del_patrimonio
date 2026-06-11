@@ -10,8 +10,8 @@
       {% if total %}<span style="font-size:.85rem; font-weight:400; color:#718096;">({{ total }} registro{{ total|pluralize }})</span>{% endif %}
     </span>
     <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-      <a href="{% url 'contribuciones:exportar_csv' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
-         class="btn btn-success btn-sm">📥 Exportar CSV</a>
+      <a href="{% url 'contribuciones:exportar_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+         class="btn btn-success btn-sm">📥 Exportar como Excel</a>
       <a href="{% url 'contribuciones:crear' %}" class="btn btn-primary btn-sm">➕ Nueva Contribución</a>
     </div>
   </div>
