@@ -9,7 +9,7 @@ User = get_user_model()
 class ContribucionFormTest(TestCase):
     def setUp(self):
         self.valid_data = {
-            'obligacion_pago': 'contribucion_mensual_patrimonio',
+            'obligacion_pago': 'contribucion',
             'numero_identidad': '90123456789',
             'numero_afiliado': '1234567',
             'codigo_zpc': 'ZPC-001',
@@ -31,15 +31,15 @@ class ContribucionFormTest(TestCase):
     def test_obligacion_pago_choices_disponibles(self):
         form = ContribucionForm()
         choices = dict(form.fields['obligacion_pago'].choices)
-        self.assertIn('contribucion_mensual_patrimonio', choices)
-        self.assertIn('donaciones', choices)
+        self.assertIn('contribucion', choices)
+        self.assertIn('donacion', choices)
 
-    def test_obligacion_pago_con_donaciones(self):
+    def test_obligacion_pago_con_donacion(self):
         data = self.valid_data.copy()
-        data['obligacion_pago'] = 'donaciones'
+        data['obligacion_pago'] = 'donacion'
         form = ContribucionForm(data=data)
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data['obligacion_pago'], 'donaciones')
+        self.assertEqual(form.cleaned_data['obligacion_pago'], 'donacion')
 
     def test_obligacion_pago_invalido(self):
         data = self.valid_data.copy()

@@ -75,7 +75,7 @@ class ContribucionModelTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass123')
         self.valid_data = {
-            'obligacion_pago': 'contribucion_mensual_patrimonio',
+            'obligacion_pago': 'contribucion',
             'numero_identidad': '90123456789',
             'numero_afiliado': '1234567',
             'codigo_zpc': 'ZPC-001',
@@ -88,7 +88,7 @@ class ContribucionModelTest(TestCase):
 
     def test_crear_contribucion_valida(self):
         c = Contribucion.objects.create(**self.valid_data)
-        self.assertEqual(c.obligacion_pago, 'contribucion_mensual_patrimonio')
+        self.assertEqual(c.obligacion_pago, 'contribucion')
         self.assertEqual(c.numero_identidad, '90123456789')
         self.assertEqual(c.monto_cup, 1500.00)
         self.assertIsNotNone(c.fecha_registro)
@@ -96,16 +96,16 @@ class ContribucionModelTest(TestCase):
 
     def test_obligacion_pago_choices(self):
         choices = dict(OBLIGACION_PAGO_CHOICES)
-        self.assertIn('contribucion_mensual_patrimonio', choices)
-        self.assertIn('donaciones', choices)
+        self.assertIn('contribucion', choices)
+        self.assertIn('donacion', choices)
         c = Contribucion.objects.create(**self.valid_data)
-        self.assertEqual(c.get_obligacion_pago_display(), 'Contribución mensual patrimonio')
+        self.assertEqual(c.get_obligacion_pago_display(), 'Contribución')
 
-    def test_obligacion_pago_donaciones(self):
+    def test_obligacion_pago_donacion(self):
         data = self.valid_data.copy()
-        data['obligacion_pago'] = 'donaciones'
+        data['obligacion_pago'] = 'donacion'
         c = Contribucion.objects.create(**data)
-        self.assertEqual(c.get_obligacion_pago_display(), 'Donaciones')
+        self.assertEqual(c.get_obligacion_pago_display(), 'Donación')
 
     def test_monto_minimo_validator(self):
         data = self.valid_data.copy()

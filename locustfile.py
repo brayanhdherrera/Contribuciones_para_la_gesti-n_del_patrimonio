@@ -5,7 +5,7 @@ from django.utils import timezone
 
 
 MESES = list(range(1, 13))
-OBLIGACIONES = ['contribucion_mensual_patrimonio', 'donaciones']
+OBLIGACIONES = ['contribucion', 'donacion']
 TIPO_CUENTA = ['natural', 'fiscal']
 ZPC_CODES = ['ZPC-001', 'ZPC-002', 'ZPC-003', 'ZPC-004', 'ZPC-005']
 

@@ -19,8 +19,8 @@ TIPO_CUENTA = [
 ]
 
 OBLIGACION_PAGO_CHOICES = [
-    ('contribucion_mensual_patrimonio', 'Contribución mensual patrimonio'),
-    ('donaciones', 'Donaciones'),
+    ('contribucion', 'Contribución'),
+    ('donacion', 'Donación'),
 ]
 
 

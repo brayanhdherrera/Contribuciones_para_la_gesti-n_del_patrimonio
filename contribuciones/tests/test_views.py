@@ -14,7 +14,7 @@ class BaseViewTest(TestCase):
             username='testuser', password='testpass123'
         )
         self.contribucion = Contribucion.objects.create(
-            obligacion_pago='contribucion_mensual_patrimonio',
+            obligacion_pago='contribucion',
             numero_identidad='90123456789',
             numero_afiliado='1234567',
             codigo_zpc='ZPC-001',
@@ -89,7 +89,7 @@ class ContribucionListViewTest(BaseViewTest):
     def test_lista_paginacion(self):
         for i in range(20):
             Contribucion.objects.create(
-                obligacion_pago='donaciones',
+                obligacion_pago='donacion',
                 numero_identidad=f'{i:011d}',
                 numero_afiliado=f'{i:06d}',
                 codigo_zpc='ZPC-001',
@@ -128,7 +128,7 @@ class ContribucionCreateViewTest(BaseViewTest):
         super().setUp()
         self.client.login(username='testuser', password='testpass123')
         self.valid_data = {
-            'obligacion_pago': 'contribucion_mensual_patrimonio',
+            'obligacion_pago': 'contribucion',
             'numero_identidad': '98765432109',
             'numero_afiliado': '654321',
             'codigo_zpc': 'ZPC-002',
@@ -167,19 +167,19 @@ class ContribucionCreateViewTest(BaseViewTest):
         c = Contribucion.objects.latest('fecha_registro')
         self.assertEqual(c.registrado_por, self.user)
 
-    def test_crear_con_obligacion_donaciones(self):
+    def test_crear_con_obligacion_donacion(self):
         data = self.valid_data.copy()
-        data['obligacion_pago'] = 'donaciones'
+        data['obligacion_pago'] = 'donacion'
         response = self.client.post(reverse('contribuciones:crear'), data=data)
         self.assertRedirects(response, reverse('contribuciones:lista'))
         c = Contribucion.objects.latest('fecha_registro')
-        self.assertEqual(c.obligacion_pago, 'donaciones')
+        self.assertEqual(c.obligacion_pago, 'donacion')
 
     def test_crear_form_contiene_select_obligacion(self):
         response = self.client.get(reverse('contribuciones:crear'))
         self.assertContains(response, '<select')
-        self.assertContains(response, 'contribucion_mensual_patrimonio')
-        self.assertContains(response, 'donaciones')
+        self.assertContains(response, 'contribucion')
+        self.assertContains(response, 'donacion')
 
 
 class ContribucionDetailViewTest(BaseViewTest):
@@ -236,7 +236,7 @@ class ContribucionUpdateViewTest(BaseViewTest):
         response = self.client.post(
             reverse('contribuciones:editar', args=[self.contribucion.pk]),
             data={
-                'obligacion_pago': 'donaciones',
+                'obligacion_pago': 'donacion',
                 'numero_identidad': '90123456789',
                 'numero_afiliado': '1234567',
                 'codigo_zpc': 'ZPC-001',
@@ -248,7 +248,7 @@ class ContribucionUpdateViewTest(BaseViewTest):
         )
         self.assertRedirects(response, reverse('contribuciones:lista'))
         self.contribucion.refresh_from_db()
-        self.assertEqual(self.contribucion.obligacion_pago, 'donaciones')
+        self.assertEqual(self.contribucion.obligacion_pago, 'donacion')
         self.assertEqual(self.contribucion.monto_cup, 3000.00)
 
     def test_editar_404(self):
@@ -283,33 +283,41 @@ class ContribucionDeleteViewTest(BaseViewTest):
         self.assertEqual(response.status_code, 404)
 
 
-class ExportarCSVTest(BaseViewTest):
+class ExportarExcelTest(BaseViewTest):
     def setUp(self):
         super().setUp()
         self.client.login(username='testuser', password='testpass123')
 
-    def test_exportar_csv_status(self):
-        response = self.client.get(reverse('contribuciones:exportar_csv'))
+    def test_exportar_excel_status(self):
+        response = self.client.get(reverse('contribuciones:exportar_excel'))
         self.assertEqual(response.status_code, 200)
 
-    def test_exportar_csv_content_type(self):
-        response = self.client.get(reverse('contribuciones:exportar_csv'))
-        self.assertEqual(response['Content-Type'], 'text/csv; charset=utf-8')
-
-    def test_exportar_csv_contiene_datos(self):
-        response = self.client.get(reverse('contribuciones:exportar_csv'))
-        content = response.content.decode('utf-8-sig')
-        self.assertIn('Obligación de Pago', content)
-        self.assertIn('contribucion_mensual_patrimonio', content)
-        self.assertIn('90123456789', content)
-
-    def test_exportar_csv_filtro(self):
-        response = self.client.get(
-            reverse('contribuciones:exportar_csv'), {'q': 'NOEXISTE'}
+    def test_exportar_excel_content_type(self):
+        response = self.client.get(reverse('contribuciones:exportar_excel'))
+        self.assertEqual(
+            response['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
-        content = response.content.decode('utf-8-sig')
-        lines = content.strip().split('\n')
-        self.assertEqual(len(lines), 1)
+
+    def test_exportar_excel_contiene_datos(self):
+        from openpyxl import load_workbook
+        from io import BytesIO
+        response = self.client.get(reverse('contribuciones:exportar_excel'))
+        wb = load_workbook(BytesIO(response.content))
+        ws = wb.active
+        headers = [cell.value for cell in ws[1]]
+        self.assertIn('Obligación de Pago', headers)
+        self.assertIn('90123456789', [str(ws.cell(row=2, column=c).value) for c in range(1, ws.max_column + 1)])
+
+    def test_exportar_excel_filtro(self):
+        from openpyxl import load_workbook
+        from io import BytesIO
+        response = self.client.get(
+            reverse('contribuciones:exportar_excel'), {'q': 'NOEXISTE'}
+        )
+        wb = load_workbook(BytesIO(response.content))
+        ws = wb.active
+        self.assertEqual(ws.max_row, 1)
 
 
 class ContribuyenteViewsTest(BaseViewTest):
