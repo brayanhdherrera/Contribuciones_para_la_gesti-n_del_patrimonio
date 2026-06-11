@@ -137,12 +137,18 @@ class ContribuyenteForm(forms.ModelForm):
     class Meta:
         model  = Contribuyente
         fields = [
+            'nombre',
             'carnet_identidad',
             'numero_contribuyente',
             'codigo_zpc',
             'tipo_cuenta',
         ]
         widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre completo de la persona o entidad',
+                'maxlength': 255,
+            }),
             'carnet_identidad': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': '11 dígitos',
@@ -159,14 +165,24 @@ class ContribuyenteForm(forms.ModelForm):
                 'placeholder': 'Ej: ZPC-001',
                 'style': 'text-transform:uppercase;',
             }),
-            'tipo_cuenta': forms.Select(attrs={'class': 'form-control'}),
+            'tipo_cuenta': forms.Select(attrs={
+                'class': 'form-control',
+                'onchange': 'toggleNombreLabel(this)',
+            }),
         }
         labels = {
+            'nombre':               'Nombre del Contribuyente',
             'carnet_identidad':     'Carnet de Identidad',
             'numero_contribuyente': 'Número de Contribuyente',
             'codigo_zpc':           'Código ZPC',
             'tipo_cuenta':          'Tipo de Cuenta',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = kwargs.get('instance')
+        if instance and instance.tipo_cuenta == 'fiscal':
+            self.fields['nombre'].label = 'Nombre de la Entidad'
 
     def clean_carnet_identidad(self):
         ci = self.cleaned_data.get('carnet_identidad', '').strip()

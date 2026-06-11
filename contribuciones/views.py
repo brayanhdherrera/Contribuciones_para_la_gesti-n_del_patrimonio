@@ -133,6 +133,7 @@ class ContribucionCreateView(LoginRequiredMixin, CreateView):
         ci = form.cleaned_data.get('numero_identidad', '')
         if not Contribuyente.objects.filter(carnet_identidad=ci).exists():
             Contribuyente.objects.create(
+                nombre='',
                 carnet_identidad=ci,
                 numero_contribuyente=form.cleaned_data.get('numero_afiliado', ''),
                 codigo_zpc=form.cleaned_data.get('codigo_zpc', ''),
@@ -249,6 +250,7 @@ def buscar_contribuyente(request):
     )[:10]
 
     data = [{
+        'nombre': c.nombre,
         'carnet_identidad': c.carnet_identidad,
         'numero_contribuyente': c.numero_contribuyente,
         'codigo_zpc': c.codigo_zpc,

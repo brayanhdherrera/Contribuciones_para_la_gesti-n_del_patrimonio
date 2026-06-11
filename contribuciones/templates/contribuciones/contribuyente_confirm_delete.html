@@ -15,6 +15,10 @@
 
   <table class="detail-table" style="margin-bottom:1rem;">
     <tr>
+      <td>Nombre / Entidad</td>
+      <td>{{ contribuyente.nombre|default:'—' }}</td>
+    </tr>
+    <tr>
       <td>CI</td>
       <td>{{ contribuyente.carnet_identidad }}</td>
     </tr>

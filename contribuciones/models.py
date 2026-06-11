@@ -36,6 +36,13 @@ validar_codigo_zpc = RegexValidator(
 
 
 class Contribuyente(models.Model):
+    nombre = models.CharField(
+        'Nombre del Contribuyente',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Nombre completo (persona natural) o nombre de la entidad (cuenta fiscal).',
+    )
     carnet_identidad = models.CharField(
         'Carnet de Identidad',
         max_length=11,
@@ -67,7 +74,7 @@ class Contribuyente(models.Model):
         ordering            = ['-fecha_registro']
 
     def __str__(self):
-        return f"{self.numero_contribuyente} - CI: {self.carnet_identidad}"
+        return f"{self.numero_contribuyente} - {self.nombre or self.carnet_identidad}"
 
 
 class Contribucion(models.Model):

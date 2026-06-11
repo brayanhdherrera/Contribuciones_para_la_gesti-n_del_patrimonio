@@ -22,6 +22,14 @@
 
     <div class="form-grid">
       <div class="form-group">
+        <label for="{{ form.nombre.id_for_label }}" id="nombre-label">{{ form.nombre.label }}<span class="req">*</span></label>
+        {{ form.nombre }}
+        {% if form.nombre.errors %}
+          <span class="field-error">{% for e in form.nombre.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
         <label for="{{ form.carnet_identidad.id_for_label }}">{{ form.carnet_identidad.label }}<span class="req">*</span></label>
         {{ form.carnet_identidad }}
         {% if form.carnet_identidad.errors %}
@@ -53,6 +61,21 @@
         {% endif %}
       </div>
     </div>
+
+    <script>
+    function toggleNombreLabel(select) {
+      var label = document.getElementById('nombre-label');
+      if (select.value === 'fiscal') {
+        label.textContent = 'Nombre de la Entidad*';
+      } else {
+        label.textContent = 'Nombre del Contribuyente*';
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      var sel = document.getElementById('{{ form.tipo_cuenta.id_for_label }}');
+      if (sel) toggleNombreLabel(sel);
+    });
+    </script>
 
     <p style="font-size:.78rem; color:#a0aec0; margin-top:1rem;">
       <span class="req">*</span> Campos obligatorios

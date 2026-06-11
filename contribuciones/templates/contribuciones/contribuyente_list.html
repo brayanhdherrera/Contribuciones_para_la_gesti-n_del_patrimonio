@@ -28,6 +28,7 @@
       <thead>
         <tr>
           <th>#</th>
+          <th>Nombre / Entidad</th>
           <th>CI</th>
           <th>N° Contribuyente</th>
           <th>Código ZPC</th>
@@ -40,6 +41,7 @@
         {% for c in contribuyentes %}
         <tr>
           <td style="color:#a0aec0; font-size:.8rem;">{{ c.id }}</td>
+          <td>{{ c.nombre|default:'—' }}</td>
           <td>{{ c.carnet_identidad }}</td>
           <td><strong>{{ c.numero_contribuyente }}</strong></td>
           <td><code style="background:#f0f4f8; padding:.1rem .4rem; border-radius:4px; font-size:.82rem;">{{ c.codigo_zpc }}</code></td>
