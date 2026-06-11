@@ -13,14 +13,15 @@
     <strong>#{{ contribucion.pk }}</strong>?
   </p>
 
-  <div style="background:#f8fafc; border-radius:8px; padding:1.1rem; margin-bottom:1.25rem;
-              text-align:left; font-size:.875rem; border:1px solid #e2e8f0;">
-    <div style="margin-bottom:.35rem;"><strong>Afiliado:</strong> {{ contribucion.numero_afiliado }}</div>
-    <div style="margin-bottom:.35rem;"><strong>Identidad:</strong> {{ contribucion.numero_identidad }}</div>
-    <div style="margin-bottom:.35rem;"><strong>Período:</strong> {{ contribucion.periodo_display }}</div>
-    <div style="margin-bottom:.35rem;"><strong>Monto CUP:</strong> {{ contribucion.monto_cup|floatformat:2 }}</div>
-    <div><strong>Obligación:</strong> {{ contribucion.obligacion_pago }}</div>
-  </div>
+    <div style="background:#f8fafc; border-radius:8px; padding:1.1rem; margin-bottom:1.25rem;
+                text-align:left; font-size:.875rem; border:1px solid #e2e8f0;">
+      <div style="margin-bottom:.35rem;"><strong>Nombre / Entidad:</strong> {{ contribucion.nombre|default:'—' }}</div>
+      <div style="margin-bottom:.35rem;"><strong>Afiliado:</strong> {{ contribucion.numero_afiliado }}</div>
+      <div style="margin-bottom:.35rem;"><strong>Identidad:</strong> {{ contribucion.numero_identidad }}</div>
+      <div style="margin-bottom:.35rem;"><strong>Período:</strong> {{ contribucion.periodo_display }}</div>
+      <div style="margin-bottom:.35rem;"><strong>Monto CUP:</strong> {{ contribucion.monto_cup|floatformat:2 }}</div>
+      <div><strong>Obligación:</strong> {{ contribucion.obligacion_pago }}</div>
+    </div>
 
   <div class="alert alert-danger" style="text-align:left; margin-bottom:1.25rem;">
     ⚠ Esta acción es <strong>irreversible</strong>. El registro será eliminado permanentemente de la base de datos.

@@ -78,6 +78,13 @@ class Contribuyente(models.Model):
 
 
 class Contribucion(models.Model):
+    nombre = models.CharField(
+        'Nombre del Contribuyente',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Nombre completo (persona natural) o nombre de la entidad (cuenta fiscal).',
+    )
     obligacion_pago = models.CharField(
         'Obligación de Pago',
         max_length=100,
@@ -152,7 +159,7 @@ class Contribucion(models.Model):
 
     def __str__(self):
         return (
-            f"#{self.pk} | Afiliado: {self.numero_afiliado} | "
+            f"#{self.pk} | {self.nombre or self.numero_afiliado} | "
             f"{self.get_periodo_mes_display()} {self.periodo_anio} | "
             f"CUP {self.monto_cup}"
         )

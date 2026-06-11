@@ -42,6 +42,7 @@
       <thead>
         <tr>
           <th>#</th>
+          <th>Nombre / Entidad</th>
           <th>N° Afiliado</th>
           <th>N° Identidad</th>
           <th>Obligación de Pago</th>
@@ -57,6 +58,7 @@
         {% for c in contribuciones %}
         <tr>
           <td style="color:#a0aec0; font-size:.8rem;">{{ c.id }}</td>
+          <td>{{ c.nombre|default:'—' }}</td>
           <td><strong>{{ c.numero_afiliado }}</strong></td>
           <td>{{ c.numero_identidad }}</td>
           <td>{{ c.obligacion_pago|truncatechars:40 }}</td>

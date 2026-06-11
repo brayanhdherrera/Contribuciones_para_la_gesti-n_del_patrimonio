@@ -26,6 +26,20 @@
 
     <div class="form-grid">
 
+      <!-- Nombre / Entidad -->
+      <div class="form-group full">
+        <label for="{{ form.nombre.id_for_label }}" id="contribucion-nombre-label">
+          {{ form.nombre.label }}<span class="req">*</span>
+        </label>
+        {{ form.nombre }}
+        {% if form.nombre.help_text %}
+          <span class="help-text">{{ form.nombre.help_text }}</span>
+        {% endif %}
+        {% if form.nombre.errors %}
+          <span class="field-error">{% for e in form.nombre.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
       <!-- Obligación de pago: ocupa todo el ancho -->
       <div class="form-group full">
         <label for="{{ form.obligacion_pago.id_for_label }}">
@@ -147,12 +161,25 @@
 </div>
 
 <script>
+function toggleNombreLabelContribucion(select) {
+    var label = document.getElementById('contribucion-nombre-label');
+    if (label) {
+        if (select.value === 'fiscal') {
+            label.textContent = 'Nombre de la Entidad*';
+        } else {
+            label.textContent = 'Nombre del Contribuyente*';
+        }
+    }
+}
 document.addEventListener('DOMContentLoaded', function() {
+    var nombreField = document.getElementById('{{ form.nombre.id_for_label }}');
     const ciField = document.getElementById('{{ form.numero_identidad.id_for_label }}');
     const afiliadoField = document.getElementById('{{ form.numero_afiliado.id_for_label }}');
     const zpcField = document.getElementById('{{ form.codigo_zpc.id_for_label }}');
     const tipoCuentaField = document.getElementById('{{ form.tipo_cuenta.id_for_label }}');
     const infoBox = document.getElementById('contribuyente-info');
+
+    if (tipoCuentaField) toggleNombreLabelContribucion(tipoCuentaField);
 
     function buscarContribuyente(q, cb) {
         if (!q || q.length < 3) return;
@@ -172,6 +199,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const c = data[0];
 
+        if (nombreField && c.nombre) {
+            nombreField.value = c.nombre;
+        }
         if (afiliadoField && fuente !== 'afiliado' && c.numero_contribuyente) {
             afiliadoField.value = c.numero_contribuyente;
         }
@@ -184,13 +214,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tipoCuentaField && c.tipo_cuenta) {
             if ([...tipoCuentaField.options].some(o => o.value === c.tipo_cuenta)) {
                 tipoCuentaField.value = c.tipo_cuenta;
+                toggleNombreLabelContribucion(tipoCuentaField);
             }
         }
 
         if (infoBox) {
             infoBox.style.display = 'block';
             infoBox.className = 'alert alert-info';
-            infoBox.textContent = '✓ Contribuyente encontrado: ' + c.carnet_identidad + ' — ' + c.numero_contribuyente;
+            var nombreDisplay = c.nombre || c.numero_contribuyente;
+            infoBox.textContent = '✓ Contribuyente encontrado: ' + nombreDisplay + ' — ' + c.carnet_identidad;
         }
     }
 

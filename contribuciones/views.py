@@ -80,6 +80,7 @@ class ContribucionListView(LoginRequiredMixin, BusquedaMixin, ListView):
 
         if q:
             qs = qs.filter(
+                Q(nombre__icontains=q)                   |
                 Q(numero_identidad__icontains=q)        |
                 Q(numero_afiliado__icontains=q) |
                 Q(codigo_zpc__icontains=q)               |
@@ -106,7 +107,9 @@ class ContribucionDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         c   = self.object
+        nombre_label = 'Nombre de la Entidad' if c.tipo_cuenta == 'fiscal' else 'Nombre del Contribuyente'
         ctx['campos'] = [
+            (nombre_label,                 c.nombre or '—'),
             ('Obligación de Pago',         c.obligacion_pago),
             ('Número de Identidad',         c.numero_identidad),
             ('Número de Afiliado', c.numero_afiliado),
@@ -131,13 +134,14 @@ class ContribucionCreateView(LoginRequiredMixin, CreateView):
         form.instance.registrado_por = self.request.user
 
         ci = form.cleaned_data.get('numero_identidad', '')
+        nombre = form.cleaned_data.get('nombre', '')
         if not Contribuyente.objects.filter(carnet_identidad=ci).exists():
             Contribuyente.objects.create(
-                nombre='',
+                nombre=nombre,
                 carnet_identidad=ci,
                 numero_contribuyente=form.cleaned_data.get('numero_afiliado', ''),
                 codigo_zpc=form.cleaned_data.get('codigo_zpc', ''),
-                tipo_cuenta='natural',
+                tipo_cuenta=form.cleaned_data.get('tipo_cuenta', 'natural'),
             )
 
         messages.success(self.request, '✔ Contribución registrada exitosamente.')
@@ -201,6 +205,7 @@ def exportar_csv(request):
 
     if q:
         qs = qs.filter(
+            Q(nombre__icontains=q)                   |
             Q(numero_identidad__icontains=q)        |
             Q(numero_afiliado__icontains=q) |
             Q(codigo_zpc__icontains=q)               |
@@ -217,13 +222,14 @@ def exportar_csv(request):
 
     writer = csv.writer(response)
     writer.writerow([
-        'ID', 'Obligación de Pago', 'N° Identidad', 'N° Afiliado',
+        'ID', 'Nombre/Entidad', 'Obligación de Pago', 'N° Identidad', 'N° Afiliado',
         'Código ZPC', 'Período', 'Monto CUP', 'Tipo de Cuenta',
         'Registrado por', 'Fecha de Registro',
     ])
     for c in qs:
         writer.writerow([
             c.pk,
+            c.nombre,
             c.obligacion_pago,
             c.numero_identidad,
             c.numero_afiliado,

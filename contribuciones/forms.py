@@ -7,6 +7,7 @@ class ContribucionForm(forms.ModelForm):
     class Meta:
         model  = Contribucion
         fields = [
+            'nombre',
             'obligacion_pago',
             'numero_identidad',
             'numero_afiliado',
@@ -17,6 +18,11 @@ class ContribucionForm(forms.ModelForm):
             'tipo_cuenta',
         ]
         widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre completo de la persona o entidad',
+                'maxlength': 255,
+            }),
             'obligacion_pago': forms.Select(attrs={
                 'class': 'form-control',
                 'autofocus': True,
@@ -51,18 +57,28 @@ class ContribucionForm(forms.ModelForm):
                 'min': '0.01',
                 'inputmode': 'decimal',
             }),
-            'tipo_cuenta': forms.Select(attrs={'class': 'form-control'}),
+            'tipo_cuenta': forms.Select(attrs={
+                'class': 'form-control',
+                'onchange': 'toggleNombreLabelContribucion(this)',
+            }),
         }
         labels = {
-            'obligacion_pago':           'Obligación de Pago',
-            'numero_identidad':          'Número de Identidad',
-            'numero_afiliado':  'Número de Afiliado',
-            'codigo_zpc':                'Código ZPC',
-            'periodo_mes':               'Mes del Período',
-            'periodo_anio':              'Año del Período',
-            'monto_cup':                 'Monto en CUP',
-            'tipo_cuenta':               'Tipo de Cuenta a Operar',
+            'nombre':               'Nombre del Contribuyente',
+            'obligacion_pago':      'Obligación de Pago',
+            'numero_identidad':     'Número de Identidad',
+            'numero_afiliado':      'Número de Afiliado',
+            'codigo_zpc':           'Código ZPC',
+            'periodo_mes':          'Mes del Período',
+            'periodo_anio':         'Año del Período',
+            'monto_cup':            'Monto en CUP',
+            'tipo_cuenta':          'Tipo de Cuenta a Operar',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = kwargs.get('instance')
+        if instance and instance.tipo_cuenta == 'fiscal':
+            self.fields['nombre'].label = 'Nombre de la Entidad'
 
     def clean_numero_identidad(self):
         ci = self.cleaned_data.get('numero_identidad', '').strip()
@@ -111,7 +127,7 @@ class BusquedaForm(forms.Form):
         label='',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Buscar por identidad, afiliado o ZPC…',
+            'placeholder': 'Buscar por nombre, identidad, afiliado o ZPC…',
         })
     )
     tipo_cuenta  = forms.ChoiceField(
