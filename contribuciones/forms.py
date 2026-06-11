@@ -9,7 +9,7 @@ class ContribucionForm(forms.ModelForm):
         fields = [
             'obligacion_pago',
             'numero_identidad',
-            'numero_contribuyente_ofa',
+            'numero_afiliado',
             'codigo_zpc',
             'periodo_mes',
             'periodo_anio',
@@ -17,9 +17,8 @@ class ContribucionForm(forms.ModelForm):
             'tipo_cuenta',
         ]
         widgets = {
-            'obligacion_pago': forms.TextInput(attrs={
+            'obligacion_pago': forms.Select(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ej: Contribución mensual patrimonio',
                 'autofocus': True,
             }),
             'numero_identidad': forms.TextInput(attrs={
@@ -28,9 +27,9 @@ class ContribucionForm(forms.ModelForm):
                 'maxlength': 11,
                 'inputmode': 'numeric',
             }),
-            'numero_contribuyente_ofa': forms.TextInput(attrs={
+            'numero_afiliado': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Número OFA',
+                'placeholder': 'N° Afiliado',
                 'inputmode': 'numeric',
             }),
             'codigo_zpc': forms.TextInput(attrs={
@@ -57,7 +56,7 @@ class ContribucionForm(forms.ModelForm):
         labels = {
             'obligacion_pago':           'Obligación de Pago',
             'numero_identidad':          'Número de Identidad',
-            'numero_contribuyente_ofa':  'Número de Contribuyente OFA',
+            'numero_afiliado':  'Número de Afiliado',
             'codigo_zpc':                'Código ZPC',
             'periodo_mes':               'Mes del Período',
             'periodo_anio':              'Año del Período',
@@ -112,7 +111,7 @@ class BusquedaForm(forms.Form):
         label='',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Buscar por identidad, OFA o ZPC…',
+            'placeholder': 'Buscar por identidad, afiliado o ZPC…',
         })
     )
     tipo_cuenta  = forms.ChoiceField(

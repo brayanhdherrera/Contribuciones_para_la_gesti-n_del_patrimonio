@@ -155,7 +155,7 @@ Abrir en el navegador: **http://localhost:8000**
 |----------------------------|---------------------|-------------------------------------------------------|
 | `obligacion_pago`          | VARCHAR(100)        | Obligatorio                                           |
 | `numero_identidad`         | VARCHAR(11)         | Obligatorio, exactamente 11 dígitos                   |
-| `numero_contribuyente_ofa` | VARCHAR(50)         | Obligatorio, solo dígitos                             |
+| `numero_afiliado`          | VARCHAR(10)         | Obligatorio, alfanumérico + caracteres especiales     |
 | `codigo_zpc`               | VARCHAR(20)         | Obligatorio, A-Z 0-9 guiones, 3–20 chars             |
 | `periodo_mes`              | SMALLINT (choices)  | Obligatorio, 1–12, no período futuro                  |
 | `periodo_anio`             | SMALLINT            | Obligatorio, 2000 ≤ año ≤ año actual                 |
@@ -170,7 +170,7 @@ Abrir en el navegador: **http://localhost:8000**
 ## 🔍 Funcionalidades incluidas
 
 ### CRUD completo
-- **Listar**: tabla paginada (15/pág), con búsqueda por identidad/OFA/ZPC/obligación y filtros por tipo de cuenta y año.
+- **Listar**: tabla paginada (15/pág), con búsqueda por identidad/afiliado/ZPC/obligación y filtros por tipo de cuenta y año.
 - **Crear**: formulario con validaciones de modelo y de negocio. Asigna `registrado_por` automáticamente.
 - **Editar**: mismo formulario, relleno con datos existentes.
 - **Eliminar**: página de confirmación con resumen del registro.

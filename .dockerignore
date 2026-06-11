@@ -1,0 +1,16 @@
+.git/
+.gitignore
+.env
+*.pyc
+__pycache__/
+*.swp
+*.swo
+*~
+.DS_Store
+/vendor/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+README.md

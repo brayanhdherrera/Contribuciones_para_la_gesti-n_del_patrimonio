@@ -3,6 +3,10 @@
 {% block title %}{{ titulo }} — Contribuciones{% endblock %}
 
 {% block content %}
+
+{% if not form.instance.pk %}
+<div id="contribuyente-info" class="alert" style="display:none;"></div>
+{% endif %}
 <div class="card" style="max-width:860px; margin:0 auto;">
   <div class="card-header">
     <span>📝 {{ titulo }}</span>
@@ -50,17 +54,17 @@
         {% endif %}
       </div>
 
-      <!-- N° OFA -->
+      <!-- N° Afiliado -->
       <div class="form-group">
-        <label for="{{ form.numero_contribuyente_ofa.id_for_label }}">
-          {{ form.numero_contribuyente_ofa.label }}<span class="req">*</span>
+        <label for="{{ form.numero_afiliado.id_for_label }}">
+          {{ form.numero_afiliado.label }}<span class="req">*</span>
         </label>
-        {{ form.numero_contribuyente_ofa }}
-        {% if form.numero_contribuyente_ofa.help_text %}
-          <span class="help-text">{{ form.numero_contribuyente_ofa.help_text }}</span>
+        {{ form.numero_afiliado }}
+        {% if form.numero_afiliado.help_text %}
+          <span class="help-text">{{ form.numero_afiliado.help_text }}</span>
         {% endif %}
-        {% if form.numero_contribuyente_ofa.errors %}
-          <span class="field-error">{% for e in form.numero_contribuyente_ofa.errors %}{{ e }} {% endfor %}</span>
+        {% if form.numero_afiliado.errors %}
+          <span class="field-error">{% for e in form.numero_afiliado.errors %}{{ e }} {% endfor %}</span>
         {% endif %}
       </div>
 
@@ -141,4 +145,72 @@
     </div>
   </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ciField = document.getElementById('{{ form.numero_identidad.id_for_label }}');
+    const afiliadoField = document.getElementById('{{ form.numero_afiliado.id_for_label }}');
+    const zpcField = document.getElementById('{{ form.codigo_zpc.id_for_label }}');
+    const tipoCuentaField = document.getElementById('{{ form.tipo_cuenta.id_for_label }}');
+    const infoBox = document.getElementById('contribuyente-info');
+
+    function buscarContribuyente(q, cb) {
+        if (!q || q.length < 3) return;
+        fetch('{% url "contribuciones:buscar_contribuyente" %}?q=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(data => cb(data))
+            .catch(() => {});
+    }
+
+    function autocompletar(data, fuente) {
+        if (!data || data.length === 0) {
+            if (infoBox) {
+                infoBox.style.display = 'none';
+                infoBox.className = 'alert';
+            }
+            return;
+        }
+        const c = data[0];
+
+        if (afiliadoField && fuente !== 'afiliado' && c.numero_contribuyente) {
+            afiliadoField.value = c.numero_contribuyente;
+        }
+        if (ciField && fuente !== 'ci' && c.carnet_identidad) {
+            ciField.value = c.carnet_identidad;
+        }
+        if (zpcField && c.codigo_zpc) {
+            zpcField.value = c.codigo_zpc;
+        }
+        if (tipoCuentaField && c.tipo_cuenta) {
+            if ([...tipoCuentaField.options].some(o => o.value === c.tipo_cuenta)) {
+                tipoCuentaField.value = c.tipo_cuenta;
+            }
+        }
+
+        if (infoBox) {
+            infoBox.style.display = 'block';
+            infoBox.className = 'alert alert-info';
+            infoBox.textContent = '✓ Contribuyente encontrado: ' + c.carnet_identidad + ' — ' + c.numero_contribuyente;
+        }
+    }
+
+    if (ciField) {
+        ciField.addEventListener('blur', function() {
+            const val = this.value.trim();
+            if (val.length === 11 && /^\d+$/.test(val)) {
+                buscarContribuyente(val, function(data) { autocompletar(data, 'ci'); });
+            }
+        });
+    }
+
+    if (afiliadoField) {
+        afiliadoField.addEventListener('blur', function() {
+            const val = this.value.trim();
+            if (val.length >= 3) {
+                buscarContribuyente(val, function(data) { autocompletar(data, 'afiliado'); });
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

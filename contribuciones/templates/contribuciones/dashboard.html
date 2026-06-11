@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Contribuciones al Patrimonio{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <span>📊 Panel de Control</span>
+    <span style="font-size:.85rem; color:#718096;">Resumen general del sistema</span>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+    <div style="background:linear-gradient(135deg,#1a3a5c,#2e7d9e); color:#fff; padding:1.25rem; border-radius:8px;">
+      <div style="font-size:.8rem; opacity:.8;">Total Contribuciones</div>
+      <div style="font-size:2rem; font-weight:700;">{{ total_contribuciones }}</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#1a5c3a,#27ae60); color:#fff; padding:1.25rem; border-radius:8px;">
+      <div style="font-size:.8rem; opacity:.8;">Total Contribuyentes</div>
+      <div style="font-size:2rem; font-weight:700;">{{ total_contribuyentes }}</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#5c3a1a,#e67e22); color:#fff; padding:1.25rem; border-radius:8px;">
+      <div style="font-size:.8rem; opacity:.8;">Monto Total CUP</div>
+      <div style="font-size:1.6rem; font-weight:700;">$ {{ monto_total|floatformat:2 }}</div>
+    </div>
+    <div style="background:linear-gradient(135deg,#3a1a5c,#8e44ad); color:#fff; padding:1.25rem; border-radius:8px;">
+      <div style="font-size:.8rem; opacity:.8;">Promedio por Contribución</div>
+      <div style="font-size:1.3rem; font-weight:700;">$ {{ promedio_monto|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+    <div>
+      <h3 style="font-size:.95rem; color:var(--primary); margin-bottom:.75rem;">Por Tipo de Cuenta</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Tipo de Cuenta</th><th style="text-align:right;">Cantidad</th><th style="text-align:right;">Monto Total</th></tr>
+          </thead>
+          <tbody>
+            {% for item in por_tipo_cuenta %}
+            <tr>
+              <td><span class="badge badge-{{ item.tipo_cuenta }}">{{ item.get_tipo_cuenta_display|default:item.tipo_cuenta }}</span></td>
+              <td style="text-align:right; font-weight:600;">{{ item.total }}</td>
+              <td style="text-align:right; font-weight:600;">$ {{ item.monto|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" style="text-align:center; color:#718096;">Sin datos</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="font-size:.95rem; color:var(--primary); margin:.75rem 0;">Por Año</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Año</th><th style="text-align:right;">Cantidad</th><th style="text-align:right;">Monto Total</th></tr>
+          </thead>
+          <tbody>
+            {% for item in por_anio %}
+            <tr>
+              <td><strong>{{ item.periodo_anio }}</strong></td>
+              <td style="text-align:right; font-weight:600;">{{ item.total }}</td>
+              <td style="text-align:right; font-weight:600;">$ {{ item.monto|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" style="text-align:center; color:#718096;">Sin datos</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="font-size:.95rem; color:var(--primary); margin-bottom:.75rem;">Últimas Contribuciones</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Obligación</th><th style="text-align:right;">Monto</th><th>Fecha</th></tr>
+          </thead>
+          <tbody>
+            {% for c in ultimas_contribuciones %}
+            <tr>
+              <td style="color:#a0aec0;">{{ c.id }}</td>
+              <td><a href="{% url 'contribuciones:detalle' c.pk %}" style="color:var(--accent); text-decoration:none;">{{ c.obligacion_pago|truncatechars:30 }}</a></td>
+              <td style="text-align:right; font-weight:600;">$ {{ c.monto_cup|floatformat:2 }}</td>
+              <td style="font-size:.8rem; color:#718096; white-space:nowrap;">{{ c.fecha_registro|date:"d/m/Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" style="text-align:center; color:#718096;">No hay contribuciones registradas</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="font-size:.95rem; color:var(--primary); margin:.75rem 0;">Últimos 12 Meses</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Mes</th><th style="text-align:right;">Cantidad</th><th style="text-align:right;">Monto Total</th></tr>
+          </thead>
+          <tbody>
+            {% for item in por_mes %}
+            <tr>
+              <td>{{ item.mes|date:"F Y"|capfirst }}</td>
+              <td style="text-align:right; font-weight:600;">{{ item.total }}</td>
+              <td style="text-align:right; font-weight:600;">$ {{ item.monto|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" style="text-align:center; color:#718096;">Sin datos</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

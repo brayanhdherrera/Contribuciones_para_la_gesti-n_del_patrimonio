@@ -10,48 +10,44 @@ def exportar_seleccion_csv(modeladmin, request, queryset):
 
     writer = csv.writer(response)
     writer.writerow([
-        'ID', 'Obligación de Pago', 'N° Identidad', 'N° OFA',
-        'Código ZPC', 'Período', 'Monto CUP', 'Tipo de Cuenta',
-        'Registrado por', 'Fecha Registro',
+        'ID', 'CI', 'N° Afiliado', 'Código ZPC',
+        'Período', 'Monto CUP', 'Tipo de Cuenta', 'Fecha Registro',
     ])
-    for c in queryset.select_related('registrado_por'):
+    for c in queryset:
         writer.writerow([
-            c.pk, c.obligacion_pago, c.numero_identidad,
-            c.numero_contribuyente_ofa, c.codigo_zpc,
-            c.periodo_display, c.monto_cup,
+            c.pk, c.numero_identidad, c.numero_afiliado,
+            c.codigo_zpc, c.periodo_display, c.monto_cup,
             c.get_tipo_cuenta_display(),
-            c.registrado_por.username if c.registrado_por else '',
             c.fecha_registro.strftime('%d/%m/%Y %H:%M'),
         ])
     return response
-
 exportar_seleccion_csv.short_description = '📥 Exportar selección a CSV'
 
 
 @admin.register(Contribucion)
 class ContribucionAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'numero_contribuyente_ofa', 'numero_identidad',
-        'obligacion_pago', 'codigo_zpc', 'periodo_label',
-        'monto_cup', 'tipo_cuenta_label', 'registrado_por', 'fecha_registro',
+        'id', 'numero_afiliado', 'numero_identidad',
+        'codigo_zpc', 'periodo_label',
+        'monto_cup', 'tipo_cuenta_label', 'fecha_registro',
     )
-    list_display_links = ('id', 'numero_contribuyente_ofa')
+    list_display_links = ('id', 'numero_afiliado')
     list_per_page      = 25
     search_fields = (
-        'numero_identidad', 'numero_contribuyente_ofa',
-        'codigo_zpc', 'obligacion_pago',
+        'numero_identidad', 'numero_afiliado',
+        'codigo_zpc',
     )
     list_filter = ('tipo_cuenta', 'periodo_mes', 'periodo_anio', 'fecha_registro')
     ordering = ('-fecha_registro',)
-    readonly_fields = ('registrado_por', 'fecha_registro', 'fecha_modificacion')
+    readonly_fields = ('fecha_registro',)
 
     fieldsets = (
-        ('Datos del Contribuyente', {
+        ('Datos de la Contribución', {
             'fields': (
-                'obligacion_pago',
                 'numero_identidad',
-                'numero_contribuyente_ofa',
+                'numero_afiliado',
                 'codigo_zpc',
+                'obligacion_pago',
             ),
         }),
         ('Período y Monto', {
@@ -59,7 +55,7 @@ class ContribucionAdmin(admin.ModelAdmin):
         }),
         ('Auditoría', {
             'classes': ('collapse',),
-            'fields': ('registrado_por', 'fecha_registro', 'fecha_modificacion'),
+            'fields': ('fecha_registro',),
         }),
     )
 

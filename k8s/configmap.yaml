@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: django-config
+  namespace: patrimonio
+data:
+  DEBUG: "False"
+  ALLOWED_HOSTS: "localhost,127.0.0.1,patrimonio-service"
+  DB_NAME: "patrimonio_db"
+  DB_USER: "postgres"
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"

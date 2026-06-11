@@ -15,12 +15,14 @@ from . import views
 app_name = 'contribuciones'
 
 urlpatterns = [
-    path('',                      views.ContribucionListView.as_view(),   name='lista'),
+    path('',                      views.DashboardView.as_view(),          name='dashboard'),
+    path('lista/',                views.ContribucionListView.as_view(),   name='lista'),
     path('nueva/',                views.ContribucionCreateView.as_view(), name='crear'),
     path('<int:pk>/',             views.ContribucionDetailView.as_view(), name='detalle'),
     path('<int:pk>/editar/',      views.ContribucionUpdateView.as_view(), name='editar'),
     path('<int:pk>/eliminar/',    views.ContribucionDeleteView.as_view(), name='eliminar'),
     path('exportar/csv/',         views.exportar_csv,                     name='exportar_csv'),
+    path('buscar-contribuyente/', views.buscar_contribuyente,             name='buscar_contribuyente'),
 ]
 
 

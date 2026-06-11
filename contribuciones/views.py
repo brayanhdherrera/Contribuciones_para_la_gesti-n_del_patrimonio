@@ -4,12 +4,59 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse_lazy
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
+from django.db.models.functions import TruncMonth
 from django.views.generic import (
-    ListView, DetailView, CreateView, UpdateView, DeleteView
+    ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 )
+from django.http import JsonResponse
 from .models import Contribucion, Contribuyente
 from .forms import ContribucionForm, BusquedaForm, ContribuyenteForm
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = 'contribuciones/dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        contribuciones = Contribucion.objects.all()
+        contribuyentes = Contribuyente.objects.all()
+
+        # ── KPI principales ──
+        ctx['total_contribuciones']  = contribuciones.count()
+        ctx['total_contribuyentes']  = contribuyentes.count()
+        ctx['monto_total']           = contribuciones.aggregate(t=Sum('monto_cup'))['t'] or 0
+        ctx['promedio_monto']        = contribuciones.aggregate(p=Sum('monto_cup'))['p'] or 0
+        if ctx['total_contribuciones']:
+            ctx['promedio_monto'] = round(ctx['promedio_monto'] / ctx['total_contribuciones'], 2)
+
+        # ── Por tipo de cuenta ──
+        ctx['por_tipo_cuenta'] = (
+            contribuciones.values('tipo_cuenta')
+            .annotate(total=Count('id'), monto=Sum('monto_cup'))
+            .order_by('-total')
+        )
+
+        # ── Últimas contribuciones ──
+        ctx['ultimas_contribuciones'] = contribuciones.select_related('registrado_por').order_by('-fecha_registro')[:10]
+
+        # ── Contribuciones por mes (últimos 12) ──
+        ctx['por_mes'] = (
+            contribuciones.annotate(mes=TruncMonth('fecha_registro'))
+            .values('mes')
+            .annotate(total=Count('id'), monto=Sum('monto_cup'))
+            .order_by('-mes')[:12]
+        )
+
+        # ── Por año ──
+        ctx['por_anio'] = (
+            contribuciones.values('periodo_anio')
+            .annotate(total=Count('id'), monto=Sum('monto_cup'))
+            .order_by('-periodo_anio')
+        )
+
+        return ctx
 
 
 class BusquedaMixin:
@@ -34,7 +81,7 @@ class ContribucionListView(LoginRequiredMixin, BusquedaMixin, ListView):
         if q:
             qs = qs.filter(
                 Q(numero_identidad__icontains=q)        |
-                Q(numero_contribuyente_ofa__icontains=q) |
+                Q(numero_afiliado__icontains=q) |
                 Q(codigo_zpc__icontains=q)               |
                 Q(obligacion_pago__icontains=q)
             )
@@ -62,7 +109,7 @@ class ContribucionDetailView(LoginRequiredMixin, DetailView):
         ctx['campos'] = [
             ('Obligación de Pago',         c.obligacion_pago),
             ('Número de Identidad',         c.numero_identidad),
-            ('Número de Contribuyente OFA', c.numero_contribuyente_ofa),
+            ('Número de Afiliado', c.numero_afiliado),
             ('Código ZPC',                  c.codigo_zpc),
             ('Período',                     c.periodo_display),
             ('Monto en CUP',                f'{c.monto_cup} CUP'),
@@ -82,6 +129,16 @@ class ContribucionCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.registrado_por = self.request.user
+
+        ci = form.cleaned_data.get('numero_identidad', '')
+        if not Contribuyente.objects.filter(carnet_identidad=ci).exists():
+            Contribuyente.objects.create(
+                carnet_identidad=ci,
+                numero_contribuyente=form.cleaned_data.get('numero_afiliado', ''),
+                codigo_zpc=form.cleaned_data.get('codigo_zpc', ''),
+                tipo_cuenta='natural',
+            )
+
         messages.success(self.request, '✔ Contribución registrada exitosamente.')
         return super().form_valid(form)
 
@@ -144,7 +201,7 @@ def exportar_csv(request):
     if q:
         qs = qs.filter(
             Q(numero_identidad__icontains=q)        |
-            Q(numero_contribuyente_ofa__icontains=q) |
+            Q(numero_afiliado__icontains=q) |
             Q(codigo_zpc__icontains=q)               |
             Q(obligacion_pago__icontains=q)
         )
@@ -159,7 +216,7 @@ def exportar_csv(request):
 
     writer = csv.writer(response)
     writer.writerow([
-        'ID', 'Obligación de Pago', 'N° Identidad', 'N° Contribuyente OFA',
+        'ID', 'Obligación de Pago', 'N° Identidad', 'N° Afiliado',
         'Código ZPC', 'Período', 'Monto CUP', 'Tipo de Cuenta',
         'Registrado por', 'Fecha de Registro',
     ])
@@ -168,7 +225,7 @@ def exportar_csv(request):
             c.pk,
             c.obligacion_pago,
             c.numero_identidad,
-            c.numero_contribuyente_ofa,
+            c.numero_afiliado,
             c.codigo_zpc,
             c.periodo_display,
             c.monto_cup,
@@ -177,6 +234,28 @@ def exportar_csv(request):
             c.fecha_registro.strftime('%d/%m/%Y %H:%M'),
         ])
     return response
+
+
+# ── Autocomplete Contribuyente ──────────────────────────────────────────────────
+
+@login_required
+def buscar_contribuyente(request):
+    q = request.GET.get('q', '').strip()
+    if not q:
+        return JsonResponse([], safe=False)
+
+    contribuyentes = Contribuyente.objects.filter(
+        Q(carnet_identidad__icontains=q) | Q(numero_contribuyente__icontains=q)
+    )[:10]
+
+    data = [{
+        'carnet_identidad': c.carnet_identidad,
+        'numero_contribuyente': c.numero_contribuyente,
+        'codigo_zpc': c.codigo_zpc,
+        'tipo_cuenta': c.tipo_cuenta,
+    } for c in contribuyentes]
+
+    return JsonResponse(data, safe=False)
 
 
 # ── CRUD Contribuyentes ────────────────────────────────────────────────────────

@@ -14,10 +14,13 @@ MESES = [
 ]
 
 TIPO_CUENTA = [
-    ('corriente', 'Cuenta Corriente'),
-    ('ahorro',    'Cuenta de Ahorro'),
-    ('fiscal',    'Cuenta Fiscal'),
-    ('especial',  'Cuenta Especial'),
+    ('natural', 'Natural'),
+    ('fiscal',  'Fiscal'),
+]
+
+OBLIGACION_PAGO_CHOICES = [
+    ('contribucion_mensual_patrimonio', 'Contribución mensual patrimonio'),
+    ('donaciones', 'Donaciones'),
 ]
 
 
@@ -71,7 +74,7 @@ class Contribucion(models.Model):
     obligacion_pago = models.CharField(
         'Obligación de Pago',
         max_length=100,
-        help_text='Descripción o código de la obligación de pago.',
+        choices=OBLIGACION_PAGO_CHOICES,
     )
     numero_identidad = models.CharField(
         'Número de Identidad',
@@ -79,11 +82,10 @@ class Contribucion(models.Model):
         validators=[solo_numeros],
         help_text='CI cubano: exactamente 11 dígitos.',
     )
-    numero_contribuyente_ofa = models.CharField(
-        'Número de Contribuyente OFA',
-        max_length=50,
-        validators=[solo_numeros],
-        help_text='Número asignado por la Oficina de la Administración Fiscal.',
+    numero_afiliado = models.CharField(
+        'Número de Afiliado',
+        max_length=10,
+        help_text='Máximo 10 caracteres. Puede incluir números, letras y caracteres especiales.',
     )
     codigo_zpc = models.CharField(
         'Código ZPC',
@@ -136,14 +138,14 @@ class Contribucion(models.Model):
         ordering            = ['-fecha_registro']
         indexes = [
             models.Index(fields=['numero_identidad'],         name='idx_contribucion_identidad'),
-            models.Index(fields=['numero_contribuyente_ofa'], name='idx_contribucion_ofa'),
+            models.Index(fields=['numero_afiliado'], name='idx_contribucion_afiliado'),
             models.Index(fields=['periodo_anio', 'periodo_mes'], name='idx_contribucion_periodo'),
             models.Index(fields=['tipo_cuenta'],              name='idx_contribucion_cuenta'),
         ]
 
     def __str__(self):
         return (
-            f"#{self.pk} | OFA: {self.numero_contribuyente_ofa} | "
+            f"#{self.pk} | Afiliado: {self.numero_afiliado} | "
             f"{self.get_periodo_mes_display()} {self.periodo_anio} | "
             f"CUP {self.monto_cup}"
         )

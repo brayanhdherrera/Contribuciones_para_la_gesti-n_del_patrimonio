@@ -250,10 +250,8 @@
       font-size: .75rem;
       font-weight: 600;
     }
-    .badge-corriente { background:#dbeafe; color:#1e40af; }
-    .badge-ahorro    { background:#d1fae5; color:#065f46; }
-    .badge-fiscal    { background:#fef3c7; color:#92400e; }
-    .badge-especial  { background:#ede9fe; color:#5b21b6; }
+    .badge-natural { background:#dbeafe; color:#1e40af; }
+    .badge-fiscal  { background:#fef3c7; color:#92400e; }
 
     /* ── Paginación ── */
     .pagination { display: flex; gap: .35rem; margin-top: 1.1rem; flex-wrap: wrap; align-items: center; }
@@ -343,10 +341,11 @@
 
 {% if user.is_authenticated %}
 <nav class="navbar">
-  <a href="{% url 'contribuciones:lista' %}" class="navbar-brand">
+  <a href="{% url 'contribuciones:dashboard' %}" class="navbar-brand">
     🏛 Contribuciones al Patrimonio
   </a>
   <div class="navbar-nav">
+    <a href="{% url 'contribuciones:dashboard' %}">📊 Dashboard</a>
     <a href="{% url 'contribuciones:lista' %}">📋 Contribuciones</a>
     <a href="{% url 'contribuciones:crear' %}">➕ Nueva</a>
     <a href="{% url 'contribuciones:contribuyente_lista' %}">👥 Contribuyentes</a>

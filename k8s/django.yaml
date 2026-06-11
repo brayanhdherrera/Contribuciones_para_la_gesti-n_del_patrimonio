@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: patrimonio
+  namespace: patrimonio
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: patrimonio
+  template:
+    metadata:
+      labels:
+        app: patrimonio
+    spec:
+      containers:
+        - name: patrimonio
+          image: patrimonio-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: django-config
+            - secretRef:
+                name: django-secret
+          livenessProbe:
+            httpGet:
+              path: /accounts/login/
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /accounts/login/
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: patrimonio-service
+  namespace: patrimonio
+spec:
+  selector:
+    app: patrimonio
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
