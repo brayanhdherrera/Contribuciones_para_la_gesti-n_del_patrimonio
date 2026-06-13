@@ -258,3 +258,26 @@ class ContribuyenteForm(forms.ModelForm):
         if not num.isdigit():
             raise forms.ValidationError('El número de contribuyente solo debe contener dígitos.')
         return num
+
+
+# ── Importación ────────────────────────────────────────────────────────────
+
+class ImportarContribucionForm(forms.Form):
+    archivo = forms.FileField(
+        label='Archivo',
+        help_text='Formatos: CSV, TXT, XML (columnas: nombre, obligacion_pago, numero_identidad, etc.)',
+        widget=forms.FileInput(attrs={'class': 'form-control'}),
+    )
+
+
+class ImportarContribuyenteForm(forms.Form):
+    archivo = forms.FileField(
+        label='Archivo',
+        help_text='Formatos: CSV, TXT, XML (columnas: nombre, carnet_identidad, numero_contribuyente, etc.)',
+        widget=forms.FileInput(attrs={'class': 'form-control'}),
+    )
+
+
+class ConfirmarImportacionForm(forms.Form):
+    datos = forms.CharField(widget=forms.HiddenInput)
+    nombre_archivo = forms.CharField(widget=forms.HiddenInput)

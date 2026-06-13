@@ -4,19 +4,76 @@
 {% block title %}Contribuciones — Listado{% endblock %}
 
 {% block content %}
+<style>
+.contrib-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+.contrib-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .75rem;
+  padding-bottom: .75rem;
+  border-bottom: 1px solid var(--border);
+}
+.contrib-card-header .nombre {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.contrib-card-header .periodo {
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+.contrib-card-header .monto {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2e7d32;
+}
+.contrib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: .6rem;
+}
+.contrib-field {
+  font-size: .82rem;
+}
+.contrib-field label {
+  display: block;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--text-muted);
+  margin-bottom: .15rem;
+}
+.contrib-field .val {
+  font-weight: 500;
+  color: #1a3a5c;
+}
+.contrib-money {
+  text-align: right;
+  font-weight: 600;
+}
+</style>
+
 <div class="card">
   <div class="card-header">
     <span>📋 Contribuciones Registradas
       {% if total %}<span style="font-size:.85rem; font-weight:400; color:#718096;">({{ total }} registro{{ total|pluralize }})</span>{% endif %}
     </span>
     <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+      <a href="{% url 'contribuciones:importar' %}" class="btn btn-success btn-sm">📥 Importar</a>
       <a href="{% url 'contribuciones:exportar_excel' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
-         class="btn btn-success btn-sm">📥 Exportar como Excel</a>
+         class="btn btn-success btn-sm">📥 Exportar Excel</a>
       <a href="{% url 'contribuciones:crear' %}" class="btn btn-primary btn-sm">➕ Nueva Contribución</a>
     </div>
   </div>
 
-  <!-- Formulario de búsqueda / filtros -->
   <form method="get" class="search-bar" id="busqueda-form">
     <div class="form-group">
       <label style="font-size:.78rem; font-weight:600; color:#4a5568;">Buscar</label>
@@ -37,62 +94,65 @@
   </form>
 
   {% if contribuciones %}
-  <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Nombre / Entidad</th>
-          <th>N° Afiliado</th>
-          <th>N° Identidad</th>
-          <th>Obligación de Pago</th>
-          <th>Código ZPC</th>
-          <th>Período</th>
-          <th style="text-align:right;">Monto CUP</th>
-          <th>Tipo de Cuenta</th>
-          <th>Organismo</th>
-          <th>Dirección</th>
-          <th>Establecimiento</th>
-          <th>Fecha Registro</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in contribuciones %}
-        <tr>
-          <td style="color:#a0aec0; font-size:.8rem;">{{ c.id }}</td>
-          <td>{{ c.nombre|default:'—' }}</td>
-          <td><strong>{{ c.numero_afiliado }}</strong></td>
-          <td>{{ c.numero_identidad }}</td>
-          <td>{{ c.obligacion_pago|truncatechars:40 }}</td>
-          <td><code style="background:#f0f4f8; padding:.1rem .4rem; border-radius:4px; font-size:.82rem;">{{ c.codigo_zpc }}</code></td>
-          <td>{{ c.periodo_display }}</td>
-          <td style="text-align:right; font-weight:700; font-variant-numeric:tabular-nums;">
-            {{ c.monto_cup|floatformat:2 }}
-          </td>
-          <td>
-            <span class="badge badge-{{ c.tipo_cuenta }}">
-              {{ c.get_tipo_cuenta_display }}
-            </span>
-          </td>
-          <td>{{ c.organismo|default:'—' }}</td>
-          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.direccion|default:'—' }}</td>
-          <td>{{ c.nombre_establecimiento|default:'—' }}</td>
-          <td style="font-size:.8rem; color:#718096; white-space:nowrap;">
-            {{ c.fecha_registro|date:"d/m/Y H:i" }}
-          </td>
-          <td class="td-actions">
-            <a href="{% url 'contribuciones:detalle' c.pk %}"  class="btn btn-outline btn-sm" title="Ver detalle">👁</a>
-            <a href="{% url 'contribuciones:editar' c.pk %}"   class="btn btn-primary btn-sm" title="Editar">✏</a>
-            <a href="{% url 'contribuciones:eliminar' c.pk %}" class="btn btn-danger btn-sm"  title="Eliminar">🗑</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  {% for c in contribuciones %}
+  <div class="contrib-card">
+    <div class="contrib-card-header">
+      <div>
+        <span class="nombre">{{ c.nombre|default:'—' }}</span>
+        <span class="periodo"> — {{ c.periodo_display }}</span>
+      </div>
+      <div style="display:flex; gap:.75rem; align-items:center;">
+        <span class="monto">{{ c.monto_cup|floatformat:2 }} CUP</span>
+        <span class="badge badge-{{ c.tipo_cuenta }}">{{ c.get_tipo_cuenta_display }}</span>
+      </div>
+    </div>
 
-  <!-- Paginación -->
+    <div class="contrib-grid">
+      <div class="contrib-field">
+        <label>Obligación de Pago</label>
+        <span class="val">{{ c.obligacion_pago }}</span>
+      </div>
+      <div class="contrib-field">
+        <label>N° Identidad</label>
+        <span class="val">{{ c.numero_identidad }}</span>
+      </div>
+      <div class="contrib-field">
+        <label>N° Afiliado</label>
+        <span class="val">{{ c.numero_afiliado }}</span>
+      </div>
+      <div class="contrib-field">
+        <label>Código ZPC</label>
+        <span class="val"><code style="background:#f0f4f8; padding:.1rem .4rem; border-radius:4px; font-size:.82rem;">{{ c.codigo_zpc }}</code></span>
+      </div>
+      <div class="contrib-field">
+        <label>Organismo</label>
+        <span class="val">{{ c.organismo|default:'—' }}</span>
+      </div>
+      <div class="contrib-field">
+        <label>Dirección</label>
+        <span class="val" style="font-size:.78rem;">{{ c.direccion|default:'—' }}</span>
+      </div>
+      <div class="contrib-field">
+        <label>Establecimiento</label>
+        <span class="val" style="font-size:.78rem;">{{ c.nombre_establecimiento|default:'—' }}</span>
+      </div>
+      <div class="contrib-field">
+        <label>Registrado por</label>
+        <span class="val" style="font-size:.78rem;">{{ c.registrado_por|default:'—' }}</span>
+      </div>
+      <div class="contrib-field">
+        <label>Fecha</label>
+        <span class="val" style="font-size:.78rem;">{{ c.fecha_registro|date:"d/m/Y H:i" }}</span>
+      </div>
+      <div class="contrib-field" style="display:flex; gap:.4rem; align-items:flex-end; justify-content:flex-end;">
+        <a href="{% url 'contribuciones:detalle' c.pk %}"  class="btn btn-outline btn-sm" title="Ver detalle">👁</a>
+        <a href="{% url 'contribuciones:editar' c.pk %}"   class="btn btn-primary btn-sm" title="Editar">✏</a>
+        <a href="{% url 'contribuciones:eliminar' c.pk %}" class="btn btn-danger btn-sm"  title="Eliminar">🗑</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
   {% if is_paginated %}
   <div class="pagination">
     {% if page_obj.has_previous %}

@@ -1,5 +1,11 @@
 import csv
+import io
+import json
+import re
+import xml.etree.ElementTree as ET
+from decimal import Decimal, InvalidOperation
 from django.http import HttpResponse
+from django.shortcuts import redirect, render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -12,8 +18,11 @@ from django.views.generic import (
 from django.http import JsonResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-from .models import Contribucion, Contribuyente
-from .forms import ContribucionForm, BusquedaForm, ContribuyenteForm
+from .models import Contribucion, Contribuyente, Organismo
+from .forms import (
+    ContribucionForm, BusquedaForm, ContribuyenteForm,
+    ImportarContribucionForm, ImportarContribuyenteForm, ConfirmarImportacionForm,
+)
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -420,3 +429,473 @@ class ContribuyenteDeleteView(LoginRequiredMixin, DeleteView):
             f'✔ Contribuyente #{self.object.pk} eliminado correctamente.'
         )
         return super().form_valid(form)
+
+
+# ── Helpers de importación ─────────────────────────────────────────────────
+
+def _detectar_y_decodificar(raw):
+    for bom, enc in [(b'\xff\xfe', 'utf-16-le'), (b'\xfe\xff', 'utf-16-be'),
+                     (b'\xef\xbb\xbf', 'utf-8-sig')]:
+        if raw.startswith(bom):
+            return raw.decode(enc)
+    for enc in ('utf-8', 'cp1252', 'latin-1'):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode('utf-8', errors='replace')
+
+
+def _normalizar_header(h):
+    return (h.lower().replace(' ', '_').replace('-', '_')
+            .replace('.', '').replace('ñ', 'n').replace('ó', 'o')
+            .replace('í', 'i').replace('á', 'a').replace('é', 'e')
+            .replace('ú', 'u'))
+
+
+CONTRIBUCION_FIELD_MAP = {
+    'nombre': 'nombre',
+    'entidad': 'nombre',
+    'nombre_del_contribuyente': 'nombre',
+    'nombre_de_la_entidad': 'nombre',
+    'obligacion_pago': 'obligacion_pago',
+    'obligacion': 'obligacion_pago',
+    'pago': 'obligacion_pago',
+    'numero_identidad': 'numero_identidad',
+    'identidad': 'numero_identidad',
+    'ci': 'numero_identidad',
+    'carnet': 'numero_identidad',
+    'carnet_identidad': 'numero_identidad',
+    'numero_afiliado': 'numero_afiliado',
+    'afiliado': 'numero_afiliado',
+    'n_afiliado': 'numero_afiliado',
+    'codigo_zpc': 'codigo_zpc',
+    'zpc': 'codigo_zpc',
+    'organismo': 'organismo',
+    'direccion': 'direccion',
+    'dirección': 'direccion',
+    'nombre_establecimiento': 'nombre_establecimiento',
+    'establecimiento': 'nombre_establecimiento',
+    'periodo_mes': 'periodo_mes',
+    'mes': 'periodo_mes',
+    'periodo_anio': 'periodo_anio',
+    'anio': 'periodo_anio',
+    'año': 'periodo_anio',
+    'monto_cup': 'monto_cup',
+    'monto': 'monto_cup',
+    'cup': 'monto_cup',
+    'tipo_cuenta': 'tipo_cuenta',
+    'tipo': 'tipo_cuenta',
+    'cuenta': 'tipo_cuenta',
+}
+
+CONTRIBUYENTE_FIELD_MAP = {
+    'nombre': 'nombre',
+    'entidad': 'nombre',
+    'nombre_del_contribuyente': 'nombre',
+    'nombre_de_la_entidad': 'nombre',
+    'carnet_identidad': 'carnet_identidad',
+    'identidad': 'carnet_identidad',
+    'ci': 'carnet_identidad',
+    'carnet': 'carnet_identidad',
+    'numero_contribuyente': 'numero_contribuyente',
+    'n_contribuyente': 'numero_contribuyente',
+    'contribuyente': 'numero_contribuyente',
+    'codigo_zpc': 'codigo_zpc',
+    'zpc': 'codigo_zpc',
+    'tipo_cuenta': 'tipo_cuenta',
+    'tipo': 'tipo_cuenta',
+    'organismo': 'organismo',
+    'direccion': 'direccion',
+    'dirección': 'direccion',
+    'nombre_establecimiento': 'nombre_establecimiento',
+    'establecimiento': 'nombre_establecimiento',
+}
+
+
+def _parsear_fila_contribucion(row, organismos_map):
+    def v(key):
+        return (row.get(key) or '').strip()
+
+    nombre = v('nombre')
+    obligacion_pago = v('obligacion_pago')
+    numero_identidad = v('numero_identidad')
+    numero_afiliado = v('numero_afiliado')
+    codigo_zpc = v('codigo_zpc')
+    organismo_nombre = v('organismo')
+    direccion = v('direccion')
+    nombre_establecimiento = v('nombre_establecimiento')
+    mes_str = v('periodo_mes')
+    anio_str = v('periodo_anio')
+    monto_str = v('monto_cup')
+    tipo_cuenta = v('tipo_cuenta')
+
+    if not numero_identidad or not numero_afiliado:
+        return None
+
+    periodo_mes = None
+    try:
+        periodo_mes = int(mes_str)
+    except (ValueError, TypeError):
+        meses_map = {'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4,
+                     'mayo': 5, 'junio': 6, 'julio': 7, 'agosto': 8,
+                     'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12}
+        periodo_mes = meses_map.get(mes_str.strip().lower()) if mes_str else None
+    if not periodo_mes or periodo_mes < 1 or periodo_mes > 12:
+        periodo_mes = 1
+
+    periodo_anio = None
+    try:
+        periodo_anio = int(anio_str)
+    except (ValueError, TypeError):
+        periodo_anio = 2024
+    if periodo_anio < 2000:
+        periodo_anio = 2024
+
+    monto_cup = Decimal('0')
+    try:
+        monto_cup = Decimal(monto_str.replace(',', '').replace('$', '').strip() or '0')
+    except (InvalidOperation, ValueError, AttributeError):
+        pass
+
+    if tipo_cuenta.lower() in ('fiscal', 'juridico', 'jurídico'):
+        tipo_cuenta = 'fiscal'
+    elif tipo_cuenta.lower() in ('natural', 'personal'):
+        tipo_cuenta = 'natural'
+    else:
+        tipo_cuenta = 'natural'
+
+    organismo = None
+    if organismo_nombre:
+        org_key = organismo_nombre.strip().lower()
+        if org_key in organismos_map:
+            organismo = organismos_map[org_key]
+
+    return {
+        'nombre': nombre,
+        'obligacion_pago': obligacion_pago if obligacion_pago in ('contribucion', 'donacion') else 'contribucion',
+        'numero_identidad': re.sub(r'\D', '', numero_identidad)[:11],
+        'numero_afiliado': numero_afiliado[:10],
+        'codigo_zpc': codigo_zpc.upper()[:20],
+        'organismo_nombre': organismo_nombre,
+        'organismo': organismo,
+        'direccion': direccion[:255],
+        'nombre_establecimiento': nombre_establecimiento[:255],
+        'periodo_mes': periodo_mes,
+        'periodo_anio': periodo_anio,
+        'monto_cup': float(monto_cup),
+        'tipo_cuenta': tipo_cuenta,
+    }
+
+
+def _parsear_fila_contribuyente(row, organismos_map):
+    def v(key):
+        return (row.get(key) or '').strip()
+
+    nombre = v('nombre')
+    carnet_identidad = v('carnet_identidad')
+    numero_contribuyente = v('numero_contribuyente')
+    codigo_zpc = v('codigo_zpc')
+    organismo_nombre = v('organismo')
+    direccion = v('direccion')
+    nombre_establecimiento = v('nombre_establecimiento')
+    tipo_cuenta = v('tipo_cuenta')
+
+    if not carnet_identidad or not numero_contribuyente:
+        return None
+
+    if tipo_cuenta.lower() in ('fiscal', 'juridico', 'jurídico'):
+        tipo_cuenta = 'fiscal'
+    elif tipo_cuenta.lower() in ('natural', 'personal'):
+        tipo_cuenta = 'natural'
+    else:
+        tipo_cuenta = 'natural'
+
+    organismo = None
+    if organismo_nombre:
+        org_key = organismo_nombre.strip().lower()
+        if org_key in organismos_map:
+            organismo = organismos_map[org_key]
+
+    return {
+        'nombre': nombre,
+        'carnet_identidad': re.sub(r'\D', '', carnet_identidad)[:11],
+        'numero_contribuyente': re.sub(r'\D', '', numero_contribuyente)[:20],
+        'codigo_zpc': codigo_zpc.upper()[:20],
+        'organismo_nombre': organismo_nombre,
+        'organismo': organismo,
+        'direccion': direccion[:255],
+        'nombre_establecimiento': nombre_establecimiento[:255],
+        'tipo_cuenta': tipo_cuenta,
+    }
+
+
+def _importar_desde_archivo(archivo, field_map, parse_fila_fn):
+    filename = archivo.name.lower()
+    raw = archivo.read()
+    content = _detectar_y_decodificar(raw)
+    lines = [l.strip() for l in content.split('\n') if l.strip()]
+
+    if not lines:
+        raise ValueError('El archivo está vacío.')
+
+    if filename.endswith('.xml'):
+        return _importar_desde_xml(content, parse_fila_fn)
+
+    separador = ','
+    for sep in ('|', '\t', ';', ','):
+        if sep in lines[0]:
+            separador = sep
+            break
+
+    reader = csv.DictReader(io.StringIO(content), delimiter=separador)
+    if not reader.fieldnames:
+        raise ValueError('No se pudo detectar la cabecera en el archivo.')
+
+    columnas = {}
+    for fn in reader.fieldnames:
+        norm = _normalizar_header(fn)
+        mapped = field_map.get(norm)
+        if mapped:
+            columnas[fn] = mapped
+
+    organismos_map = {o.nombre.lower(): o for o in Organismo.objects.all()}
+
+    datos = []
+    for row in reader:
+        row_mapped = {}
+        for col_orig, campo in columnas.items():
+            val = (row.get(col_orig) or '').strip()
+            if val:
+                row_mapped[campo] = val
+        parsed = parse_fila_fn(row_mapped, organismos_map)
+        if parsed:
+            datos.append(parsed)
+
+    return datos
+
+
+def _importar_desde_xml(content, parse_fila_fn):
+    parser = ET.XMLParser()
+    try:
+        root = ET.fromstring(content.encode('utf-8'), parser)
+    except ET.ParseError:
+        try:
+            root = ET.fromstring(content, parser)
+        except ET.ParseError as e:
+            raise ValueError(f'Error al parsear XML: {e}')
+
+    rows = []
+    for child in root:
+        if len(child) > 0:
+            rows.append(child)
+
+    organismos_map = {o.nombre.lower(): o for o in Organismo.objects.all()}
+
+    datos = []
+    for row_elem in rows:
+        row_raw = {}
+        for field in row_elem:
+            tag = _normalizar_header(field.tag)
+            text = (field.text or '').strip()
+            if text:
+                row_raw[tag] = text
+        parsed = parse_fila_fn(row_raw, organismos_map)
+        if parsed:
+            datos.append(parsed)
+
+    return datos
+
+
+# ── Importar Contribuciones ────────────────────────────────────────────────
+
+class ImportarContribucionView(LoginRequiredMixin, TemplateView):
+    template_name = 'contribuciones/contribucion_import.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form'] = ImportarContribucionForm()
+        ctx['confirmar_form'] = ConfirmarImportacionForm()
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        if 'confirmar' in request.POST:
+            return self._confirmar_importacion(request)
+        return self._subir_y_previsualizar(request)
+
+    def _subir_y_previsualizar(self, request):
+        form = ImportarContribucionForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {
+                'form': form,
+                'confirmar_form': ConfirmarImportacionForm(),
+            })
+
+        archivo = request.FILES['archivo']
+        filename = archivo.name
+
+        try:
+            datos = _importar_desde_archivo(
+                archivo, CONTRIBUCION_FIELD_MAP, _parsear_fila_contribucion
+            )
+        except ValueError as e:
+            messages.error(request, f'✖ {e}')
+            return render(request, self.template_name, {
+                'form': ImportarContribucionForm(),
+                'confirmar_form': ConfirmarImportacionForm(),
+            })
+
+        if not datos:
+            messages.warning(request, '⚠ No se encontraron datos válidos en el archivo.')
+            return render(request, self.template_name, {
+                'form': ImportarContribucionForm(),
+                'confirmar_form': ConfirmarImportacionForm(),
+            })
+
+        datos_json = json.dumps(datos, default=str)
+        confirmar_form = ConfirmarImportacionForm(initial={
+            'datos': datos_json,
+            'nombre_archivo': filename,
+        })
+
+        total_monto = sum(float(d.get('monto_cup', 0)) for d in datos)
+
+        return render(request, self.template_name, {
+            'form': ImportarContribucionForm(),
+            'confirmar_form': confirmar_form,
+            'datos': datos,
+            'filename': filename,
+            'total_datos': len(datos),
+            'total_monto': total_monto,
+            'show_preview': True,
+        })
+
+    def _confirmar_importacion(self, request):
+        form = ConfirmarImportacionForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, '✖ Error al confirmar la importación.')
+            return redirect('contribuciones:importar')
+
+        datos = json.loads(form.cleaned_data['datos'])
+        filename = form.cleaned_data['nombre_archivo']
+
+        creados = errores = 0
+        for fila in datos:
+            try:
+                Contribucion.objects.create(
+                    nombre=fila.get('nombre', ''),
+                    obligacion_pago=fila.get('obligacion_pago', 'contribucion'),
+                    numero_identidad=fila.get('numero_identidad', ''),
+                    numero_afiliado=fila.get('numero_afiliado', ''),
+                    codigo_zpc=fila.get('codigo_zpc', ''),
+                    organismo_id=fila['organismo'].pk if fila.get('organismo') else None,
+                    direccion=fila.get('direccion', ''),
+                    nombre_establecimiento=fila.get('nombre_establecimiento', ''),
+                    periodo_mes=fila.get('periodo_mes', 1),
+                    periodo_anio=fila.get('periodo_anio', 2024),
+                    monto_cup=fila.get('monto_cup', 0),
+                    tipo_cuenta=fila.get('tipo_cuenta', 'natural'),
+                    registrado_por=request.user,
+                )
+                creados += 1
+            except Exception:
+                errores += 1
+
+        msg = f'✔ Importación completada: {creados} contribuciones guardadas.'
+        if errores:
+            msg += f' {errores} filas omitidas por errores.'
+        messages.success(request, msg)
+        return redirect('contribuciones:lista')
+
+
+# ── Importar Contribuyentes ────────────────────────────────────────────────
+
+class ImportarContribuyenteView(LoginRequiredMixin, TemplateView):
+    template_name = 'contribuciones/contribuyente_import.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['form'] = ImportarContribuyenteForm()
+        ctx['confirmar_form'] = ConfirmarImportacionForm()
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        if 'confirmar' in request.POST:
+            return self._confirmar_importacion(request)
+        return self._subir_y_previsualizar(request)
+
+    def _subir_y_previsualizar(self, request):
+        form = ImportarContribuyenteForm(request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {
+                'form': form,
+                'confirmar_form': ConfirmarImportacionForm(),
+            })
+
+        archivo = request.FILES['archivo']
+        filename = archivo.name
+
+        try:
+            datos = _importar_desde_archivo(
+                archivo, CONTRIBUYENTE_FIELD_MAP, _parsear_fila_contribuyente
+            )
+        except ValueError as e:
+            messages.error(request, f'✖ {e}')
+            return render(request, self.template_name, {
+                'form': ImportarContribuyenteForm(),
+                'confirmar_form': ConfirmarImportacionForm(),
+            })
+
+        if not datos:
+            messages.warning(request, '⚠ No se encontraron datos válidos en el archivo.')
+            return render(request, self.template_name, {
+                'form': ImportarContribuyenteForm(),
+                'confirmar_form': ConfirmarImportacionForm(),
+            })
+
+        datos_json = json.dumps(datos, default=str)
+        confirmar_form = ConfirmarImportacionForm(initial={
+            'datos': datos_json,
+            'nombre_archivo': filename,
+        })
+
+        return render(request, self.template_name, {
+            'form': ImportarContribuyenteForm(),
+            'confirmar_form': confirmar_form,
+            'datos': datos,
+            'filename': filename,
+            'total_datos': len(datos),
+            'show_preview': True,
+        })
+
+    def _confirmar_importacion(self, request):
+        form = ConfirmarImportacionForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, '✖ Error al confirmar la importación.')
+            return redirect('contribuciones:contribuyente_importar')
+
+        datos = json.loads(form.cleaned_data['datos'])
+        filename = form.cleaned_data['nombre_archivo']
+
+        creados = errores = 0
+        for fila in datos:
+            try:
+                Contribuyente.objects.create(
+                    nombre=fila.get('nombre', ''),
+                    carnet_identidad=fila.get('carnet_identidad', ''),
+                    numero_contribuyente=fila.get('numero_contribuyente', ''),
+                    codigo_zpc=fila.get('codigo_zpc', ''),
+                    tipo_cuenta=fila.get('tipo_cuenta', 'natural'),
+                    organismo_id=fila['organismo'].pk if fila.get('organismo') else None,
+                    direccion=fila.get('direccion', ''),
+                    nombre_establecimiento=fila.get('nombre_establecimiento', ''),
+                )
+                creados += 1
+            except Exception:
+                errores += 1
+
+        msg = f'✔ Importación completada: {creados} contribuyentes guardados.'
+        if errores:
+            msg += f' {errores} filas omitidas por errores.'
+        messages.success(request, msg)
+        return redirect('contribuciones:contribuyente_lista')

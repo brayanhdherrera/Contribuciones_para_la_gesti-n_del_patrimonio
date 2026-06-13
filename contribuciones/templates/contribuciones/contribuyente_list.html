@@ -3,12 +3,63 @@
 {% block title %}Contribuyentes — Listado{% endblock %}
 
 {% block content %}
+<style>
+.cont-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+.cont-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .75rem;
+  padding-bottom: .75rem;
+  border-bottom: 1px solid var(--border);
+}
+.cont-card-header .nombre {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.cont-card-header .num-cont {
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+.cont-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: .6rem;
+}
+.cont-field {
+  font-size: .82rem;
+}
+.cont-field label {
+  display: block;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--text-muted);
+  margin-bottom: .15rem;
+}
+.cont-field .val {
+  font-weight: 500;
+  color: #1a3a5c;
+}
+</style>
+
 <div class="card">
   <div class="card-header">
     <span>👥 Contribuyentes
       {% if total %}<span style="font-size:.85rem; font-weight:400; color:#718096;">({{ total }} registro{{ total|pluralize }})</span>{% endif %}
     </span>
-    <a href="{% url 'contribuciones:contribuyente_crear' %}" class="btn btn-primary btn-sm">➕ Nuevo Contribuyente</a>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+      <a href="{% url 'contribuciones:contribuyente_importar' %}" class="btn btn-success btn-sm">📥 Importar</a>
+      <a href="{% url 'contribuciones:contribuyente_crear' %}" class="btn btn-primary btn-sm">➕ Nuevo Contribuyente</a>
+    </div>
   </div>
 
   <form method="get" class="search-bar">
@@ -23,46 +74,55 @@
   </form>
 
   {% if contribuyentes %}
-  <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Nombre / Entidad</th>
-          <th>CI</th>
-          <th>N° Contribuyente</th>
-          <th>Código ZPC</th>
-          <th>Tipo de Cuenta</th>
-          <th>Organismo</th>
-          <th>Dirección</th>
-          <th>Establecimiento</th>
-          <th>Fecha Registro</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in contribuyentes %}
-        <tr>
-          <td style="color:#a0aec0; font-size:.8rem;">{{ c.id }}</td>
-          <td>{{ c.nombre|default:'—' }}</td>
-          <td>{{ c.carnet_identidad }}</td>
-          <td><strong>{{ c.numero_contribuyente }}</strong></td>
-          <td><code style="background:#f0f4f8; padding:.1rem .4rem; border-radius:4px; font-size:.82rem;">{{ c.codigo_zpc }}</code></td>
-          <td><span class="badge badge-{{ c.tipo_cuenta }}">{{ c.get_tipo_cuenta_display }}</span></td>
-          <td>{{ c.organismo|default:'—' }}</td>
-          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.direccion|default:'—' }}</td>
-          <td>{{ c.nombre_establecimiento|default:'—' }}</td>
-          <td style="font-size:.8rem; color:#718096;">{{ c.fecha_registro|date:"d/m/Y H:i" }}</td>
-          <td class="td-actions">
-            <a href="{% url 'contribuciones:contribuyente_detalle' c.pk %}" class="btn btn-outline btn-sm" title="Ver">👁</a>
-            <a href="{% url 'contribuciones:contribuyente_editar' c.pk %}" class="btn btn-primary btn-sm" title="Editar">✏</a>
-            <a href="{% url 'contribuciones:contribuyente_eliminar' c.pk %}" class="btn btn-danger btn-sm" title="Eliminar">🗑</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  {% for c in contribuyentes %}
+  <div class="cont-card">
+    <div class="cont-card-header">
+      <div>
+        <span class="nombre">{{ c.nombre|default:'—' }}</span>
+        <span class="num-cont"> — #{{ c.numero_contribuyente }}</span>
+      </div>
+      <div style="display:flex; gap:.5rem; align-items:center;">
+        <span class="badge badge-{{ c.tipo_cuenta }}">{{ c.get_tipo_cuenta_display }}</span>
+      </div>
+    </div>
+
+    <div class="cont-grid">
+      <div class="cont-field">
+        <label>Carnet de Identidad</label>
+        <span class="val">{{ c.carnet_identidad }}</span>
+      </div>
+      <div class="cont-field">
+        <label>N° Contribuyente</label>
+        <span class="val">{{ c.numero_contribuyente }}</span>
+      </div>
+      <div class="cont-field">
+        <label>Código ZPC</label>
+        <span class="val"><code style="background:#f0f4f8; padding:.1rem .4rem; border-radius:4px; font-size:.82rem;">{{ c.codigo_zpc }}</code></span>
+      </div>
+      <div class="cont-field">
+        <label>Organismo</label>
+        <span class="val">{{ c.organismo|default:'—' }}</span>
+      </div>
+      <div class="cont-field">
+        <label>Dirección</label>
+        <span class="val" style="font-size:.78rem;">{{ c.direccion|default:'—' }}</span>
+      </div>
+      <div class="cont-field">
+        <label>Establecimiento</label>
+        <span class="val" style="font-size:.78rem;">{{ c.nombre_establecimiento|default:'—' }}</span>
+      </div>
+      <div class="cont-field">
+        <label>Fecha Registro</label>
+        <span class="val" style="font-size:.78rem;">{{ c.fecha_registro|date:"d/m/Y H:i" }}</span>
+      </div>
+      <div class="cont-field" style="display:flex; gap:.4rem; align-items:flex-end; justify-content:flex-end;">
+        <a href="{% url 'contribuciones:contribuyente_detalle' c.pk %}" class="btn btn-outline btn-sm" title="Ver">👁</a>
+        <a href="{% url 'contribuciones:contribuyente_editar' c.pk %}" class="btn btn-primary btn-sm" title="Editar">✏</a>
+        <a href="{% url 'contribuciones:contribuyente_eliminar' c.pk %}" class="btn btn-danger btn-sm" title="Eliminar">🗑</a>
+      </div>
+    </div>
   </div>
+  {% endfor %}
 
   {% if is_paginated %}
   <div class="pagination">
