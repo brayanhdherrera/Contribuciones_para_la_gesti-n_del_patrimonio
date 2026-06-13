@@ -38,9 +38,19 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx['total_contribuciones']  = contribuciones.count()
         ctx['total_contribuyentes']  = contribuyentes.count()
         ctx['monto_total']           = contribuciones.aggregate(t=Sum('monto_cup'))['t'] or 0
-        ctx['promedio_monto']        = contribuciones.aggregate(p=Sum('monto_cup'))['p'] or 0
-        if ctx['total_contribuciones']:
-            ctx['promedio_monto'] = round(ctx['promedio_monto'] / ctx['total_contribuciones'], 2)
+
+        # ── Último Estado de Cuenta importado ──
+        from estado_cuenta.models import ArchivoImportado, MovimientoEstadoCuenta
+        ultimo_archivo = ArchivoImportado.objects.order_by('-fecha_subida').first()
+        ctx['ultimo_estado_cuenta'] = ultimo_archivo
+        if ultimo_archivo:
+            ctx['ultimo_ec_movimientos'] = ultimo_archivo.movimientos.all()[:5]
+            ctx['ultimo_ec_total'] = ultimo_archivo.movimientos.aggregate(
+                t=Sum('principal'), i=Sum('impuesto_total')
+            )
+        else:
+            ctx['ultimo_ec_movimientos'] = []
+            ctx['ultimo_ec_total'] = {'t': 0, 'i': 0}
 
         # ── Por tipo de cuenta ──
         ctx['por_tipo_cuenta'] = (

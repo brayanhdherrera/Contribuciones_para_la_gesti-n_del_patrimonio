@@ -21,9 +21,21 @@
       <div style="font-size:.8rem; opacity:.8;">Monto Total CUP</div>
       <div style="font-size:1.6rem; font-weight:700;">$ {{ monto_total|floatformat:2 }}</div>
     </div>
-    <div style="background:linear-gradient(135deg,#3a1a5c,#8e44ad); color:#fff; padding:1.25rem; border-radius:8px;">
-      <div style="font-size:.8rem; opacity:.8;">Promedio por Contribución</div>
-      <div style="font-size:1.3rem; font-weight:700;">$ {{ promedio_monto|floatformat:2 }}</div>
+    <div style="background:linear-gradient(135deg,#c0392b,#e74c3c); color:#fff; padding:1.25rem; border-radius:8px;">
+      <div style="font-size:.8rem; opacity:.8;">Último Estado de Cuenta</div>
+      <div style="font-size:1rem; font-weight:700;">
+        {% if ultimo_estado_cuenta %}
+          {{ ultimo_estado_cuenta.nombre_original }}
+        {% else %}
+          Sin importaciones
+        {% endif %}
+      </div>
+      {% if ultimo_estado_cuenta %}
+      <div style="font-size:.75rem; opacity:.7; margin-top:.25rem;">
+        {{ ultimo_estado_cuenta.fecha_subida|date:"d/m/Y H:i" }} —
+        {{ ultimo_estado_cuenta.total_movimientos }} mov.
+      </div>
+      {% endif %}
     </div>
   </div>
 
@@ -49,25 +61,48 @@
         </table>
       </div>
 
-      <h3 style="font-size:.95rem; color:var(--primary); margin:.75rem 0;">Por Año</h3>
+      <h3 style="font-size:.95rem; color:var(--primary); margin:.75rem 0;">
+        Último Estado de Cuenta
+        {% if ultimo_estado_cuenta %}
+        <a href="{% url 'estado_cuenta:lista' %}" style="font-size:.78rem; font-weight:400; margin-left:.5rem;">Ver todos →</a>
+        {% endif %}
+      </h3>
+      {% if ultimo_estado_cuenta %}
+      <div style="background:#f8fafc; border:1px solid var(--border); border-radius:6px; padding:.75rem; margin-bottom:.75rem; font-size:.82rem;">
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+          <span><strong>Archivo:</strong> {{ ultimo_estado_cuenta.nombre_original }}</span>
+          <span><strong>Subido:</strong> {{ ultimo_estado_cuenta.fecha_subida|date:"d/m/Y H:i" }}</span>
+          <span><strong>Movimientos:</strong> {{ ultimo_estado_cuenta.total_movimientos }}</span>
+          <span><strong>Total Principal:</strong> $ {{ ultimo_ec_total.t|default:0|floatformat:2 }}</span>
+          <span style="color:#c0392b;"><strong>Total Impuesto:</strong> $ {{ ultimo_ec_total.i|default:0|floatformat:2 }}</span>
+        </div>
+      </div>
       <div class="table-wrapper">
         <table>
           <thead>
-            <tr><th>Año</th><th style="text-align:right;">Cantidad</th><th style="text-align:right;">Monto Total</th></tr>
+            <tr><th>NIT</th><th>Producto</th><th style="text-align:right;">Principal</th><th style="text-align:right;">Impuesto</th><th>Referencia</th></tr>
           </thead>
           <tbody>
-            {% for item in por_anio %}
+            {% for m in ultimo_ec_movimientos %}
             <tr>
-              <td><strong>{{ item.periodo_anio }}</strong></td>
-              <td style="text-align:right; font-weight:600;">{{ item.total }}</td>
-              <td style="text-align:right; font-weight:600;">$ {{ item.monto|floatformat:2 }}</td>
+              <td style="font-weight:600;">{{ m.nit }}</td>
+              <td>{{ m.producto|date:"d/m/Y" }}</td>
+              <td style="text-align:right;">$ {{ m.principal|floatformat:2 }}</td>
+              <td style="text-align:right; color:#c0392b;">$ {{ m.impuesto_total|floatformat:2 }}</td>
+              <td style="max-width:120px; font-size:.78rem;">{{ m.referencia|truncatechars:25 }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="3" style="text-align:center; color:#718096;">Sin datos</td></tr>
+            <tr><td colspan="5" style="text-align:center; color:#718096;">Sin movimientos</td></tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
+      {% else %}
+      <div style="padding:1rem; text-align:center; color:#718096; font-size:.85rem; background:#f8fafc; border-radius:6px;">
+        No se ha importado ningún Estado de Cuenta todavía.
+        <a href="{% url 'estado_cuenta:importar' %}" style="display:inline-block; margin-top:.5rem;">📥 Importar ahora</a>
+      </div>
+      {% endif %}
     </div>
 
     <div>
