@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Importar Estado de Cuenta{% endblock %}
+{% block content %}
+
+<style>
+.preview-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: .75rem;
+  padding: .85rem 1rem;
+}
+.preview-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .5rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: .85rem;
+}
+.preview-card-header .nit {
+  font-weight: 700;
+  color: var(--primary);
+}
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: .4rem .8rem;
+}
+.preview-field {
+  font-size: .8rem;
+}
+.preview-field label {
+  display: block;
+  font-size: .65rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--text-muted);
+  margin-bottom: .1rem;
+}
+.preview-field .val {
+  font-weight: 500;
+}
+</style>
+
+{% if not show_preview %}
+
+<div class="card" style="max-width:600px; margin:0 auto;">
+  <div class="card-header">
+    <span>📥 Importar Estado de Cuenta</span>
+    <a href="{% url 'estado_cuenta:lista' %}" class="btn btn-outline btn-sm">← Volver al listado</a>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="non-field-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="form-grid">
+      <div class="form-group full">
+        <label for="{{ form.archivo.id_for_label }}">{{ form.archivo.label }}<span class="req">*</span></label>
+        {{ form.archivo }}
+        {% if form.archivo.help_text %}
+        <span class="help-text">{{ form.archivo.help_text }}</span>
+        {% endif %}
+        {% if form.archivo.errors %}
+        <span class="field-error">{{ form.archivo.errors }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem; padding:1rem; background:#f0f4f8; border-radius:6px; font-size:.85rem;">
+      <strong style="color:var(--primary);">Formatos soportados:</strong>
+      <div style="margin-top:.5rem; display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
+        <div style="background:#fff; padding:.6rem; border-radius:5px; border:1px solid var(--border);">
+          <strong style="font-size:.9rem;">📄 XML</strong>
+          <p style="font-size:.78rem; color:var(--text-muted); margin-top:.3rem;">
+            .xml<br>
+            Etiquetas: NIT, Producto, Referencia, Principal, etc.
+          </p>
+        </div>
+        <div style="background:#fff; padding:.6rem; border-radius:5px; border:1px solid var(--border);">
+          <strong style="font-size:.9rem;">📕 PDF</strong>
+          <p style="font-size:.78rem; color:var(--text-muted); margin-top:.3rem;">
+            .pdf<br>
+            Extracción por etiquetas (NIT:, Producto:, etc.)
+          </p>
+        </div>
+        <div style="background:#fff; padding:.6rem; border-radius:5px; border:1px solid var(--border);">
+          <strong style="font-size:.9rem;">📃 TXT / CSV</strong>
+          <p style="font-size:.78rem; color:var(--text-muted); margin-top:.3rem;">
+            .txt .csv<br>
+            Separado por tabulador, coma, pipe o punto y coma
+          </p>
+        </div>
+      </div>
+      <p style="margin-top:.7rem; font-size:.8rem; color:var(--text-muted);">
+        El sistema extraerá los datos y los mostrará para que los revises antes de guardarlos.
+      </p>
+    </div>
+
+    <div class="btn-group" style="margin-top:1rem;">
+      <button type="submit" class="btn btn-success">📤 Subir y previsualizar</button>
+      <a href="{% url 'estado_cuenta:lista' %}" class="btn btn-secondary">✖ Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% else %}
+
+<div class="card">
+  <div class="card-header">
+    <span>📋 Vista previa — {{ filename }}</span>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+      <a href="{% url 'estado_cuenta:importar' %}" class="btn btn-outline btn-sm">← Subir otro archivo</a>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem; padding:.75rem; background:#e8f5e9; border-radius:6px; font-size:.85rem;">
+    <span><strong>Declaraciones:</strong> {{ total_datos }}</span>
+    <span><strong>Total Principal:</strong> {{ total_principal|floatformat:2 }}</span>
+    <span style="color:#c0392b;"><strong>Total Impuesto:</strong> {{ total_impuesto|floatformat:2 }}</span>
+  </div>
+
+  <div style="margin-bottom:1rem; padding:.75rem; background:#fff3cd; border-radius:6px; font-size:.85rem; color:#856404;">
+    ⚠ Revisa los datos extraídos. Si son correctos, haz clic en <strong>"Confirmar importación"</strong> para guardarlos en la base de datos.
+  </div>
+
+  <form method="post" action="{% url 'estado_cuenta:importar' %}" id="confirmar-form">
+    {% csrf_token %}
+    <input type="hidden" name="confirmar" value="1">
+    {% for field in confirmar_form %}
+      {{ field }}
+    {% endfor %}
+
+    {% if datos %}
+    {% for d in datos %}
+    <div class="preview-card">
+      <div class="preview-card-header">
+        <div>
+          <span class="nit">{{ d.nit }}</span>
+          <span style="color:var(--text-muted); margin-left:.5rem;">{{ d.producto }}</span>
+        </div>
+        <span style="font-size:.75rem; color:var(--text-muted);">#{{ forloop.counter }}</span>
+      </div>
+      <div class="preview-grid">
+        <div class="preview-field">
+          <label>Próx. Hacienda</label>
+          <span class="val">{{ d.prox_hacienda|default:"—" }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Tipo</label>
+          <span class="val">{{ d.tipo }}</span>
+        </div>
+        <div class="preview-field" style="grid-column:span 2;">
+          <label>Referencia</label>
+          <span class="val">{{ d.referencia }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Impuesto Inicial</label>
+          <span class="val">{{ d.impuesto_inicial|floatformat:2 }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Principal</label>
+          <span class="val" style="font-weight:600;">{{ d.principal|floatformat:2 }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Recargo</label>
+          <span class="val">{{ d.recargo|floatformat:2 }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Tipo Impuesto</label>
+          <span class="val">{{ d.tipo_impuesto }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Impuesto Total</label>
+          <span class="val" style="color:#c0392b; font-weight:600;">{{ d.impuesto_total|floatformat:2 }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Persona Fiscal</label>
+          <span class="val" style="font-size:.75rem;">{{ d.persona_fiscal|default:"—" }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Sucursal</label>
+          <span class="val">{{ d.sucursal|default:"—" }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Ejecutado por</label>
+          <span class="val" style="font-size:.75rem;">{{ d.ejecutado_por|default:"—" }}</span>
+        </div>
+        <div class="preview-field">
+          <label>Autorizado por</label>
+          <span class="val" style="font-size:.75rem;">{{ d.autorizado_por|default:"—" }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="btn-group" style="margin-top:1rem;">
+      <button type="submit" class="btn btn-success">💾 Confirmar importación</button>
+      <a href="{% url 'estado_cuenta:importar' %}" class="btn btn-secondary">✖ Cancelar</a>
+    </div>
+  </form>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📂</div>
+    <p>No se encontraron datos válidos en el archivo.</p>
+    <a href="{% url 'estado_cuenta:importar' %}" class="btn btn-secondary">← Intentar con otro archivo</a>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endif %}
+{% endblock %}

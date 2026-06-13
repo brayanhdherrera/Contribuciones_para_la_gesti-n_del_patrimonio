@@ -35,6 +35,22 @@ validar_codigo_zpc = RegexValidator(
 )
 
 
+class Organismo(models.Model):
+    nombre = models.CharField(
+        'Nombre del Organismo',
+        max_length=255,
+        unique=True,
+    )
+
+    class Meta:
+        verbose_name = 'Organismo'
+        verbose_name_plural = 'Organismos'
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class Contribuyente(models.Model):
     nombre = models.CharField(
         'Nombre del Contribuyente',
@@ -64,6 +80,28 @@ class Contribuyente(models.Model):
         'Tipo de Cuenta',
         max_length=10,
         choices=[('natural', 'Natural'), ('fiscal', 'Fiscal')],
+    )
+    organismo = models.ForeignKey(
+        Organismo,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Organismo',
+        related_name='contribuyentes',
+    )
+    direccion = models.CharField(
+        'Dirección (calle y entrecalles)',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Calle y entrecalles donde radica el contribuyente.',
+    )
+    nombre_establecimiento = models.CharField(
+        'Nombre del Establecimiento',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Nombre del establecimiento o entidad.',
     )
     fecha_registro = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
@@ -127,6 +165,28 @@ class Contribucion(models.Model):
         'Tipo de Cuenta a Operar',
         max_length=20,
         choices=TIPO_CUENTA,
+    )
+    organismo = models.ForeignKey(
+        Organismo,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Organismo',
+        related_name='contribuciones',
+    )
+    direccion = models.CharField(
+        'Dirección (calle y entrecalles)',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Calle y entrecalles donde radica el contribuyente.',
+    )
+    nombre_establecimiento = models.CharField(
+        'Nombre del Establecimiento',
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Nombre del establecimiento o entidad.',
     )
     registrado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,

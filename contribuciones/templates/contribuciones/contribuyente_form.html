@@ -60,6 +60,36 @@
           <span class="field-error">{% for e in form.tipo_cuenta.errors %}{{ e }} {% endfor %}</span>
         {% endif %}
       </div>
+
+      <div class="form-group">
+        <label for="{{ form.organismo.id_for_label }}">{{ form.organismo.label }}</label>
+        {{ form.organismo }}
+        {% if form.organismo.errors %}
+          <span class="field-error">{% for e in form.organismo.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <div class="form-group full">
+        <label for="{{ form.direccion.id_for_label }}">{{ form.direccion.label }}</label>
+        {{ form.direccion }}
+        {% if form.direccion.help_text %}
+          <span class="help-text">{{ form.direccion.help_text }}</span>
+        {% endif %}
+        {% if form.direccion.errors %}
+          <span class="field-error">{% for e in form.direccion.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
+
+      <div class="form-group full">
+        <label for="{{ form.nombre_establecimiento.id_for_label }}">{{ form.nombre_establecimiento.label }}</label>
+        {{ form.nombre_establecimiento }}
+        {% if form.nombre_establecimiento.help_text %}
+          <span class="help-text">{{ form.nombre_establecimiento.help_text }}</span>
+        {% endif %}
+        {% if form.nombre_establecimiento.errors %}
+          <span class="field-error">{% for e in form.nombre_establecimiento.errors %}{{ e }} {% endfor %}</span>
+        {% endif %}
+      </div>
     </div>
 
     <script>

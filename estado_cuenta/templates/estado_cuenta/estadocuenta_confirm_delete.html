@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Eliminar Declaración{% endblock %}
+{% block content %}
+<div class="card" style="max-width:620px; margin:0 auto;">
+  <div class="card-header">
+    <span>🗑 Eliminar Declaración</span>
+    <a href="{% url 'estado_cuenta:lista' %}" class="btn btn-outline btn-sm">← Volver</a>
+  </div>
+
+  <div class="alert alert-danger">
+    ¿Está seguro de eliminar esta declaración? Esta acción no se puede deshacer.
+  </div>
+
+  <div class="detail-table-wrapper" style="margin-bottom:1.5rem;">
+    <table class="detail-table">
+      <tr><td>NIT</td><td>{{ movimiento.nit }}</td></tr>
+      <tr><td>Producto</td><td>{{ movimiento.producto|date:"d/m/Y" }}</td></tr>
+      <tr><td>Próx. Hacienda</td><td>{{ movimiento.prox_hacienda|date:"d/m/Y" }}</td></tr>
+      <tr><td>Tipo</td><td>{{ movimiento.tipo }}</td></tr>
+      <tr><td>Referencia</td><td>{{ movimiento.referencia }}</td></tr>
+      <tr><td>Impuesto Inicial</td><td>{{ movimiento.impuesto_inicial|floatformat:2 }}</td></tr>
+      <tr><td>Principal</td><td>{{ movimiento.principal|floatformat:2 }}</td></tr>
+      <tr><td>Recargo</td><td>{{ movimiento.recargo|floatformat:2 }}</td></tr>
+      <tr><td>Tipo de Impuesto</td><td>{{ movimiento.tipo_impuesto }}</td></tr>
+      <tr><td>Impuesto Total</td><td>{{ movimiento.impuesto_total|floatformat:2 }}</td></tr>
+      <tr><td>Persona Fiscal</td><td>{{ movimiento.persona_fiscal }}</td></tr>
+      <tr><td>Sucursal</td><td>{{ movimiento.sucursal }}</td></tr>
+      <tr><td>Ejecutado por</td><td>{{ movimiento.ejecutado_por }}</td></tr>
+      <tr><td>Autorizado por</td><td>{{ movimiento.autorizado_por }}</td></tr>
+    </table>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="btn-group">
+      <button type="submit" class="btn btn-danger">🗑 Confirmar eliminación</button>
+      <a href="{% url 'estado_cuenta:lista' %}" class="btn btn-secondary">✖ Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

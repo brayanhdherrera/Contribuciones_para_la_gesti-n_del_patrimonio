@@ -6,3 +6,4 @@ whitenoise==6.7.0
 django-unfold==0.81.0
 locust==2.44.1
 openpyxl==3.1.5
+pdfminer.six==20260107

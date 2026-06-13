@@ -116,6 +116,9 @@ class ContribucionDetailView(LoginRequiredMixin, DetailView):
             ('Número de Identidad',         c.numero_identidad),
             ('Número de Afiliado', c.numero_afiliado),
             ('Código ZPC',                  c.codigo_zpc),
+            ('Organismo',                   c.organismo or '—'),
+            ('Dirección',                   c.direccion or '—'),
+            ('Nombre del Establecimiento',  c.nombre_establecimiento or '—'),
             ('Período',                     c.periodo_display),
             ('Monto en CUP',                f'{c.monto_cup} CUP'),
             ('Tipo de Cuenta',              c.get_tipo_cuenta_display()),
@@ -144,6 +147,9 @@ class ContribucionCreateView(LoginRequiredMixin, CreateView):
                 numero_contribuyente=form.cleaned_data.get('numero_afiliado', ''),
                 codigo_zpc=form.cleaned_data.get('codigo_zpc', ''),
                 tipo_cuenta=form.cleaned_data.get('tipo_cuenta', 'natural'),
+                organismo=form.cleaned_data.get('organismo'),
+                direccion=form.cleaned_data.get('direccion', ''),
+                nombre_establecimiento=form.cleaned_data.get('nombre_establecimiento', ''),
             )
 
         messages.success(self.request, '✔ Contribución registrada exitosamente.')
@@ -224,7 +230,8 @@ def exportar_excel(request):
 
     headers = [
         'ID', 'Nombre/Entidad', 'Obligación de Pago', 'N° Identidad', 'N° Afiliado',
-        'Código ZPC', 'Período', 'Monto CUP', 'Tipo de Cuenta',
+        'Código ZPC', 'Organismo', 'Dirección', 'Establecimiento',
+        'Período', 'Monto CUP', 'Tipo de Cuenta',
         'Registrado por', 'Fecha de Registro',
     ]
 
@@ -257,6 +264,9 @@ def exportar_excel(request):
             c.numero_identidad,
             c.numero_afiliado,
             c.codigo_zpc,
+            str(c.organismo) if c.organismo else '',
+            c.direccion,
+            c.nombre_establecimiento,
             c.periodo_display,
             float(c.monto_cup),
             c.get_tipo_cuenta_display(),
@@ -267,7 +277,7 @@ def exportar_excel(request):
             cell = ws.cell(row=row_idx, column=col_idx, value=value)
             cell.font = data_font
             cell.border = thin_border
-            if col_idx == 8:
+            if col_idx == 11:
                 cell.alignment = monto_alignment
                 cell.number_format = '#,##0.00'
             else:
@@ -279,11 +289,14 @@ def exportar_excel(request):
     ws.column_dimensions['D'].width = 15
     ws.column_dimensions['E'].width = 15
     ws.column_dimensions['F'].width = 15
-    ws.column_dimensions['G'].width = 18
-    ws.column_dimensions['H'].width = 15
-    ws.column_dimensions['I'].width = 15
-    ws.column_dimensions['J'].width = 22
-    ws.column_dimensions['K'].width = 20
+    ws.column_dimensions['G'].width = 25
+    ws.column_dimensions['H'].width = 30
+    ws.column_dimensions['I'].width = 25
+    ws.column_dimensions['J'].width = 18
+    ws.column_dimensions['K'].width = 15
+    ws.column_dimensions['L'].width = 15
+    ws.column_dimensions['M'].width = 22
+    ws.column_dimensions['N'].width = 20
 
     ws.freeze_panes = 'A2'
 

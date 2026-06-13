@@ -33,6 +33,9 @@
           <th>N° Contribuyente</th>
           <th>Código ZPC</th>
           <th>Tipo de Cuenta</th>
+          <th>Organismo</th>
+          <th>Dirección</th>
+          <th>Establecimiento</th>
           <th>Fecha Registro</th>
           <th>Acciones</th>
         </tr>
@@ -46,6 +49,9 @@
           <td><strong>{{ c.numero_contribuyente }}</strong></td>
           <td><code style="background:#f0f4f8; padding:.1rem .4rem; border-radius:4px; font-size:.82rem;">{{ c.codigo_zpc }}</code></td>
           <td><span class="badge badge-{{ c.tipo_cuenta }}">{{ c.get_tipo_cuenta_display }}</span></td>
+          <td>{{ c.organismo|default:'—' }}</td>
+          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.direccion|default:'—' }}</td>
+          <td>{{ c.nombre_establecimiento|default:'—' }}</td>
           <td style="font-size:.8rem; color:#718096;">{{ c.fecha_registro|date:"d/m/Y H:i" }}</td>
           <td class="td-actions">
             <a href="{% url 'contribuciones:contribuyente_detalle' c.pk %}" class="btn btn-outline btn-sm" title="Ver">👁</a>

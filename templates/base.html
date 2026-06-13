@@ -349,6 +349,7 @@
     <a href="{% url 'contribuciones:lista' %}">📋 Contribuciones</a>
     <a href="{% url 'contribuciones:crear' %}">➕ Nueva</a>
     <a href="{% url 'contribuciones:contribuyente_lista' %}">👥 Contribuyentes</a>
+    <a href="{% url 'estado_cuenta:lista' %}">📄 Estado de Cuenta</a>
     {% if user.is_staff %}
     <a href="{% url 'admin:index' %}">⚙ Admin</a>
     {% endif %}

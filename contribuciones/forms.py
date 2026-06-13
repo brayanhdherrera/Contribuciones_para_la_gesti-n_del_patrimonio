@@ -1,6 +1,6 @@
 from django import forms
 from django.utils import timezone
-from .models import Contribucion, Contribuyente, MESES, TIPO_CUENTA
+from .models import Contribucion, Contribuyente, Organismo, MESES, TIPO_CUENTA
 
 
 class ContribucionForm(forms.ModelForm):
@@ -12,6 +12,9 @@ class ContribucionForm(forms.ModelForm):
             'numero_identidad',
             'numero_afiliado',
             'codigo_zpc',
+            'organismo',
+            'direccion',
+            'nombre_establecimiento',
             'periodo_mes',
             'periodo_anio',
             'monto_cup',
@@ -43,6 +46,19 @@ class ContribucionForm(forms.ModelForm):
                 'placeholder': 'Ej: ZPC-001',
                 'style': 'text-transform:uppercase;',
             }),
+            'organismo': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'direccion': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Calle y entrecalles',
+                'maxlength': 255,
+            }),
+            'nombre_establecimiento': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del establecimiento',
+                'maxlength': 255,
+            }),
             'periodo_mes':  forms.Select(attrs={'class': 'form-control'}),
             'periodo_anio': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -63,15 +79,18 @@ class ContribucionForm(forms.ModelForm):
             }),
         }
         labels = {
-            'nombre':               'Nombre del Contribuyente',
-            'obligacion_pago':      'Obligación de Pago',
-            'numero_identidad':     'Número de Identidad',
-            'numero_afiliado':      'Número de Afiliado',
-            'codigo_zpc':           'Código ZPC',
-            'periodo_mes':          'Mes del Período',
-            'periodo_anio':         'Año del Período',
-            'monto_cup':            'Monto en CUP',
-            'tipo_cuenta':          'Tipo de Cuenta a Operar',
+            'nombre':                   'Nombre del Contribuyente',
+            'obligacion_pago':          'Obligación de Pago',
+            'numero_identidad':         'Número de Identidad',
+            'numero_afiliado':          'Número de Afiliado',
+            'codigo_zpc':               'Código ZPC',
+            'organismo':                'Organismo',
+            'direccion':                'Dirección',
+            'nombre_establecimiento':   'Nombre del Establecimiento',
+            'periodo_mes':              'Mes del Período',
+            'periodo_anio':             'Año del Período',
+            'monto_cup':                'Monto en CUP',
+            'tipo_cuenta':              'Tipo de Cuenta a Operar',
         }
 
     def __init__(self, *args, **kwargs):
@@ -79,6 +98,8 @@ class ContribucionForm(forms.ModelForm):
         instance = kwargs.get('instance')
         if instance and instance.tipo_cuenta == 'fiscal':
             self.fields['nombre'].label = 'Nombre de la Entidad'
+        self.fields['organismo'].queryset = Organismo.objects.all()
+        self.fields['organismo'].empty_label = 'Seleccione un organismo'
 
     def clean_numero_identidad(self):
         ci = self.cleaned_data.get('numero_identidad', '').strip()
@@ -158,6 +179,9 @@ class ContribuyenteForm(forms.ModelForm):
             'numero_contribuyente',
             'codigo_zpc',
             'tipo_cuenta',
+            'organismo',
+            'direccion',
+            'nombre_establecimiento',
         ]
         widgets = {
             'nombre': forms.TextInput(attrs={
@@ -185,13 +209,29 @@ class ContribuyenteForm(forms.ModelForm):
                 'class': 'form-control',
                 'onchange': 'toggleNombreLabel(this)',
             }),
+            'organismo': forms.Select(attrs={
+                'class': 'form-control',
+            }),
+            'direccion': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Calle y entrecalles',
+                'maxlength': 255,
+            }),
+            'nombre_establecimiento': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del establecimiento',
+                'maxlength': 255,
+            }),
         }
         labels = {
-            'nombre':               'Nombre del Contribuyente',
-            'carnet_identidad':     'Carnet de Identidad',
-            'numero_contribuyente': 'Número de Contribuyente',
-            'codigo_zpc':           'Código ZPC',
-            'tipo_cuenta':          'Tipo de Cuenta',
+            'nombre':                   'Nombre del Contribuyente',
+            'carnet_identidad':         'Carnet de Identidad',
+            'numero_contribuyente':     'Número de Contribuyente',
+            'codigo_zpc':               'Código ZPC',
+            'tipo_cuenta':              'Tipo de Cuenta',
+            'organismo':                'Organismo',
+            'direccion':                'Dirección',
+            'nombre_establecimiento':   'Nombre del Establecimiento',
         }
 
     def __init__(self, *args, **kwargs):
@@ -199,6 +239,8 @@ class ContribuyenteForm(forms.ModelForm):
         instance = kwargs.get('instance')
         if instance and instance.tipo_cuenta == 'fiscal':
             self.fields['nombre'].label = 'Nombre de la Entidad'
+        self.fields['organismo'].queryset = Organismo.objects.all()
+        self.fields['organismo'].empty_label = 'Seleccione un organismo'
 
     def clean_carnet_identidad(self):
         ci = self.cleaned_data.get('carnet_identidad', '').strip()

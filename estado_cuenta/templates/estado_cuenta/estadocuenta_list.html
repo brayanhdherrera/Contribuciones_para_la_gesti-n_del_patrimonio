@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Estado de Cuenta{% endblock %}
+{% block content %}
+
+<style>
+.dec-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+.dec-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .75rem;
+  padding-bottom: .75rem;
+  border-bottom: 1px solid var(--border);
+}
+.dec-card-header .nit {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+.dec-card-header .producto {
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+.dec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: .6rem;
+}
+.dec-field {
+  font-size: .82rem;
+}
+.dec-field label {
+  display: block;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--text-muted);
+  margin-bottom: .15rem;
+}
+.dec-field .val {
+  font-weight: 500;
+  color: #1a3a5c;
+}
+.dec-money {
+  text-align: right;
+  font-weight: 600;
+}
+</style>
+
+<div class="card">
+  <div class="card-header">
+    <span>📄 Estado de Cuenta {% if total %}({{ total }} declaraciones){% endif %}</span>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+      <a href="{% url 'estado_cuenta:importar' %}" class="btn btn-success btn-sm">📥 Importar</a>
+      {% if total %}
+      <form method="post" action="{% url 'estado_cuenta:eliminar_todos' %}" style="display:inline;" onsubmit="return confirm('¿Eliminar todas las declaraciones?')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-sm">🗑 Limpiar todo</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if total %}
+  <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem; padding:.75rem; background:#f8fafc; border-radius:6px; font-size:.85rem;">
+    <span><strong>Total Principal:</strong> {{ total_principal|floatformat:2 }}</span>
+    <span style="color:#c0392b;"><strong>Total Impuesto:</strong> {{ total_impuesto|floatformat:2 }}</span>
+  </div>
+  {% endif %}
+
+  <form method="get" class="search-bar">
+    <div class="form-group">
+      <input type="text" name="q" class="form-control" placeholder="Buscar por NIT, referencia o persona fiscal…" value="{{ q }}">
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">🔍 Buscar</button>
+    {% if q %}
+    <a href="{% url 'estado_cuenta:lista' %}" class="btn btn-outline btn-sm">✖ Limpiar</a>
+    {% endif %}
+  </form>
+
+  {% if movimientos %}
+  {% for m in movimientos %}
+  <div class="dec-card">
+    <div class="dec-card-header">
+      <div>
+        <span class="nit">{{ m.nit }}</span>
+        <span class="producto"> — {{ m.producto|date:"d/m/Y" }}</span>
+      </div>
+      <div style="display:flex; gap:.5rem; align-items:center;">
+        <span class="badge" style="background:#e8f5e9; color:#2e7d32; padding:.2rem .6rem; border-radius:4px; font-size:.75rem;">
+          Tipo {{ m.tipo }}
+        </span>
+        <form method="post" action="{% url 'estado_cuenta:eliminar' m.pk %}" onsubmit="return confirm('¿Eliminar esta declaración?')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm" style="padding:.15rem .5rem;font-size:.75rem;">✕</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="dec-grid">
+      <div class="dec-field">
+        <label>Próx. Hacienda</label>
+        <span class="val">{{ m.prox_hacienda|date:"d/m/Y" }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Referencia</label>
+        <span class="val">{{ m.referencia }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Impuesto Inicial</label>
+        <span class="val dec-money">{{ m.impuesto_inicial|floatformat:2 }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Principal</label>
+        <span class="val dec-money">{{ m.principal|floatformat:2 }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Recargo</label>
+        <span class="val dec-money">{{ m.recargo|floatformat:2 }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Tipo Impuesto</label>
+        <span class="val">{{ m.tipo_impuesto }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Impuesto Total</label>
+        <span class="val dec-money" style="color:#c0392b;">{{ m.impuesto_total|floatformat:2 }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Sucursal</label>
+        <span class="val">{{ m.sucursal }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Persona Fiscal</label>
+        <span class="val" style="font-size:.78rem;">{{ m.persona_fiscal }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Ejecutado por</label>
+        <span class="val" style="font-size:.78rem;">{{ m.ejecutado_por }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Autorizado por</label>
+        <span class="val" style="font-size:.78rem;">{{ m.autorizado_por }}</span>
+      </div>
+      <div class="dec-field">
+        <label>Archivo</label>
+        <span class="val" style="font-size:.78rem;">
+          {% if m.archivo_origen %}
+            <a href="{{ m.archivo_origen.archivo.url }}" target="_blank">{{ m.archivo_origen.nombre_original }}</a>
+          {% else %}
+            {{ m.archivo_original|default:"—" }}
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page=1{% if q %}&q={{ q }}{% endif %}">&laquo; Primera</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">Anterior</a>
+    {% endif %}
+    <span class="current">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">Siguiente</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}{% if q %}&q={{ q }}{% endif %}">Última &raquo;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📂</div>
+    <p>No hay declaraciones de estado de cuenta importadas.</p>
+    <a href="{% url 'estado_cuenta:importar' %}" class="btn btn-success">📥 Importar Estado de Cuenta</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -34,6 +34,18 @@
       <td><span class="badge badge-{{ contribuyente.tipo_cuenta }}">{{ contribuyente.get_tipo_cuenta_display }}</span></td>
     </tr>
     <tr>
+      <td>Organismo</td>
+      <td>{{ contribuyente.organismo|default:'—' }}</td>
+    </tr>
+    <tr>
+      <td>Dirección</td>
+      <td>{{ contribuyente.direccion|default:'—' }}</td>
+    </tr>
+    <tr>
+      <td>Nombre del Establecimiento</td>
+      <td>{{ contribuyente.nombre_establecimiento|default:'—' }}</td>
+    </tr>
+    <tr>
       <td>Fecha de Registro</td>
       <td>{{ contribuyente.fecha_registro|date:"d/m/Y H:i" }}</td>
     </tr>

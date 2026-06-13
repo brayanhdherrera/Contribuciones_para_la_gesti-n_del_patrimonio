@@ -50,6 +50,9 @@
           <th>Período</th>
           <th style="text-align:right;">Monto CUP</th>
           <th>Tipo de Cuenta</th>
+          <th>Organismo</th>
+          <th>Dirección</th>
+          <th>Establecimiento</th>
           <th>Fecha Registro</th>
           <th>Acciones</th>
         </tr>
@@ -72,6 +75,9 @@
               {{ c.get_tipo_cuenta_display }}
             </span>
           </td>
+          <td>{{ c.organismo|default:'—' }}</td>
+          <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ c.direccion|default:'—' }}</td>
+          <td>{{ c.nombre_establecimiento|default:'—' }}</td>
           <td style="font-size:.8rem; color:#718096; white-space:nowrap;">
             {{ c.fecha_registro|date:"d/m/Y H:i" }}
           </td>

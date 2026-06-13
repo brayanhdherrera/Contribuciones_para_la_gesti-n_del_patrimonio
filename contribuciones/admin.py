@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.http import HttpResponse
-from .models import Contribucion, Contribuyente
+from .models import Contribucion, Contribuyente, Organismo
 import csv
 
 def exportar_seleccion_csv(modeladmin, request, queryset):
@@ -24,11 +24,18 @@ def exportar_seleccion_csv(modeladmin, request, queryset):
 exportar_seleccion_csv.short_description = '📥 Exportar selección a CSV'
 
 
+@admin.register(Organismo)
+class OrganismoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nombre')
+    search_fields = ('nombre',)
+    ordering = ('nombre',)
+
+
 @admin.register(Contribucion)
 class ContribucionAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'numero_afiliado', 'numero_identidad',
-        'codigo_zpc', 'periodo_label',
+        'codigo_zpc', 'organismo', 'periodo_label',
         'monto_cup', 'tipo_cuenta_label', 'fecha_registro',
     )
     list_display_links = ('id', 'numero_afiliado')
@@ -48,6 +55,9 @@ class ContribucionAdmin(admin.ModelAdmin):
                 'numero_afiliado',
                 'codigo_zpc',
                 'obligacion_pago',
+                'organismo',
+                'direccion',
+                'nombre_establecimiento',
             ),
         }),
         ('Período y Monto', {
@@ -74,17 +84,17 @@ class ContribucionAdmin(admin.ModelAdmin):
 
 @admin.register(Contribuyente)
 class ContribuyenteAdmin(admin.ModelAdmin):
-    list_display = ('id', 'carnet_identidad', 'numero_contribuyente', 'codigo_zpc', 'tipo_cuenta', 'fecha_registro')
+    list_display = ('id', 'carnet_identidad', 'numero_contribuyente', 'codigo_zpc', 'tipo_cuenta', 'organismo', 'fecha_registro')
     list_display_links = ('id', 'numero_contribuyente')
     list_per_page = 25
     search_fields = ('carnet_identidad', 'numero_contribuyente', 'codigo_zpc')
-    list_filter = ('tipo_cuenta', 'fecha_registro')
+    list_filter = ('tipo_cuenta', 'organismo', 'fecha_registro')
     ordering = ('-fecha_registro',)
     readonly_fields = ('fecha_registro', 'fecha_modificacion')
 
     fieldsets = (
         ('Datos', {
-            'fields': ('carnet_identidad', 'numero_contribuyente', 'codigo_zpc', 'tipo_cuenta'),
+            'fields': ('carnet_identidad', 'numero_contribuyente', 'codigo_zpc', 'tipo_cuenta', 'organismo', 'direccion', 'nombre_establecimiento'),
         }),
         ('Auditoría', {
             'classes': ('collapse',),
