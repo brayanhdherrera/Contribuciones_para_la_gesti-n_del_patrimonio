@@ -3,49 +3,30 @@
 {% block content %}
 
 <style>
-.preview-card {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  margin-bottom: .75rem;
-  padding: .85rem 1rem;
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
 }
-.preview-card-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: .5rem;
-  padding-bottom: .5rem;
+.result-table th {
+  background: #2B579A;
+  color: #fff;
+  padding: .5rem .6rem;
+  text-align: left;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.result-table td {
+  padding: .4rem .6rem;
   border-bottom: 1px solid var(--border);
-  font-size: .85rem;
+  vertical-align: top;
 }
-.preview-card-header .nombre {
-  font-weight: 700;
-  color: var(--primary);
-}
-.preview-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: .4rem .8rem;
-}
-.preview-field {
-  font-size: .8rem;
-}
-.preview-field label {
-  display: block;
-  font-size: .65rem;
-  text-transform: uppercase;
-  letter-spacing: .03em;
-  color: var(--text-muted);
-  margin-bottom: .1rem;
-}
-.preview-field .val {
-  font-weight: 500;
+.result-table tr:hover td {
+  background: #f8fafc;
 }
 </style>
 
-{% if not show_preview %}
+{% if not show_results %}
 
 <div class="card" style="max-width:600px; margin:0 auto;">
   <div class="card-header">
@@ -78,28 +59,17 @@
       <div style="margin-top:.5rem; display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
         <div style="background:#fff; padding:.6rem; border-radius:5px; border:1px solid var(--border);">
           <strong style="font-size:.9rem;">📄 XML</strong>
-          <p style="font-size:.78rem; color:var(--text-muted); margin-top:.3rem;">
-            .xml<br>
-            Etiquetas: nombre, obligacion_pago, numero_identidad, etc.
-          </p>
+          <p style="font-size:.78rem; color:var(--text-muted); margin-top:.3rem;">.xml</p>
         </div>
         <div style="background:#fff; padding:.6rem; border-radius:5px; border:1px solid var(--border);">
           <strong style="font-size:.9rem;">📃 CSV / TXT</strong>
-          <p style="font-size:.78rem; color:var(--text-muted); margin-top:.3rem;">
-            .csv .txt<br>
-            Cabecera con nombres de columna
-          </p>
+          <p style="font-size:.78rem; color:var(--text-muted); margin-top:.3rem;">.csv .txt</p>
         </div>
       </div>
-      <p style="margin-top:.7rem; font-size:.8rem; color:var(--text-muted);">
-        Columnas esperadas: nombre, obligacion_pago, numero_identidad, numero_afiliado,
-        codigo_zpc, organismo, direccion, nombre_establecimiento, periodo_mes,
-        periodo_anio, monto_cup, tipo_cuenta
-      </p>
     </div>
 
     <div class="btn-group" style="margin-top:1rem;">
-      <button type="submit" class="btn btn-success">📤 Subir y previsualizar</button>
+      <button type="submit" class="btn btn-success">📤 Subir e importar</button>
       <a href="{% url 'contribuciones:lista' %}" class="btn btn-secondary">✖ Cancelar</a>
     </div>
   </form>
@@ -109,83 +79,60 @@
 
 <div class="card">
   <div class="card-header">
-    <span>📋 Vista previa — {{ filename }}</span>
+    <span>📋 Resultado de importación — {{ filename }}</span>
     <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-      <a href="{% url 'contribuciones:importar' %}" class="btn btn-outline btn-sm">← Subir otro archivo</a>
+      <a href="{% url 'contribuciones:importar' %}" class="btn btn-outline btn-sm">📥 Importar otro archivo</a>
+      <a href="{% url 'contribuciones:lista' %}" class="btn btn-primary btn-sm">← Ir al listado</a>
     </div>
   </div>
 
   <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem; padding:.75rem; background:#e8f5e9; border-radius:6px; font-size:.85rem;">
-    <span><strong>Contribuciones:</strong> {{ total_datos }}</span>
-    <span><strong>Monto Total:</strong> {{ total_monto|floatformat:2 }} CUP</span>
+    <span><strong>✅ Importadas:</strong> {{ total_datos }}</span>
+    <span><strong>💰 Monto Total:</strong> {{ total_monto|floatformat:2 }} CUP</span>
+    {% if total_errores %}
+    <span style="color:#c0392b;"><strong>⚠ Omitidas:</strong> {{ total_errores }}</span>
+    {% endif %}
   </div>
 
-  <div style="margin-bottom:1rem; padding:.75rem; background:#fff3cd; border-radius:6px; font-size:.85rem; color:#856404;">
-    ⚠ Revisa los datos extraídos. Si son correctos, haz clic en <strong>"Confirmar importación"</strong> para guardarlos en la base de datos.
+  {% if datos %}
+  <div class="table-wrapper">
+    <table class="result-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nombre</th>
+          <th>Obligación</th>
+          <th>N° Identidad</th>
+          <th>N° Afiliado</th>
+          <th>ZPC</th>
+          <th>Organismo</th>
+          <th>Dirección</th>
+          <th>Establecimiento</th>
+          <th>Período</th>
+          <th>Monto CUP</th>
+          <th>Tipo Cuenta</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in datos %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ d.nombre|default:'—' }}</td>
+          <td>{{ d.obligacion_pago }}</td>
+          <td>{{ d.numero_identidad }}</td>
+          <td>{{ d.numero_afiliado }}</td>
+          <td><code style="background:#f0f4f8; padding:.1rem .3rem; border-radius:3px;">{{ d.codigo_zpc }}</code></td>
+          <td>{{ d.organismo_nombre|default:'—' }}</td>
+          <td style="max-width:150px; font-size:.78rem;">{{ d.direccion|default:'—' }}</td>
+          <td style="font-size:.78rem;">{{ d.nombre_establecimiento|default:'—' }}</td>
+          <td>{{ d.periodo_mes }}/{{ d.periodo_anio }}</td>
+          <td style="font-weight:600; text-align:right;">{{ d.monto_cup|floatformat:2 }}</td>
+          <td><span class="badge badge-{{ d.tipo_cuenta }}">{{ d.tipo_cuenta }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-
-  <form method="post" action="{% url 'contribuciones:importar' %}" id="confirmar-form">
-    {% csrf_token %}
-    <input type="hidden" name="confirmar" value="1">
-    {% for field in confirmar_form %}
-      {{ field }}
-    {% endfor %}
-
-    {% if datos %}
-    {% for d in datos %}
-    <div class="preview-card">
-      <div class="preview-card-header">
-        <div>
-          <span class="nombre">{{ d.nombre|default:'—' }}</span>
-          <span style="color:var(--text-muted); margin-left:.5rem;">{{ d.periodo_mes }}/{{ d.periodo_anio }}</span>
-        </div>
-        <div style="display:flex; gap:.5rem; align-items:center;">
-          <span style="font-weight:600; color:#2e7d32;">{{ d.monto_cup|floatformat:2 }} CUP</span>
-          <span style="font-size:.75rem; color:var(--text-muted);">#{{ forloop.counter }}</span>
-        </div>
-      </div>
-      <div class="preview-grid">
-        <div class="preview-field">
-          <label>Obligación de Pago</label>
-          <span class="val">{{ d.obligacion_pago }}</span>
-        </div>
-        <div class="preview-field">
-          <label>N° Identidad</label>
-          <span class="val">{{ d.numero_identidad }}</span>
-        </div>
-        <div class="preview-field">
-          <label>N° Afiliado</label>
-          <span class="val">{{ d.numero_afiliado }}</span>
-        </div>
-        <div class="preview-field">
-          <label>Código ZPC</label>
-          <span class="val">{{ d.codigo_zpc }}</span>
-        </div>
-        <div class="preview-field">
-          <label>Organismo</label>
-          <span class="val">{{ d.organismo_nombre|default:'—' }}</span>
-        </div>
-        <div class="preview-field">
-          <label>Dirección</label>
-          <span class="val" style="font-size:.75rem;">{{ d.direccion|default:'—' }}</span>
-        </div>
-        <div class="preview-field">
-          <label>Establecimiento</label>
-          <span class="val" style="font-size:.75rem;">{{ d.nombre_establecimiento|default:'—' }}</span>
-        </div>
-        <div class="preview-field">
-          <label>Tipo Cuenta</label>
-          <span class="val">{{ d.tipo_cuenta }}</span>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-
-    <div class="btn-group" style="margin-top:1rem;">
-      <button type="submit" class="btn btn-success">💾 Confirmar importación</button>
-      <a href="{% url 'contribuciones:importar' %}" class="btn btn-secondary">✖ Cancelar</a>
-    </div>
-  </form>
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">📂</div>
@@ -193,7 +140,6 @@
     <a href="{% url 'contribuciones:importar' %}" class="btn btn-secondary">← Intentar con otro archivo</a>
   </div>
   {% endif %}
-
 </div>
 
 {% endif %}

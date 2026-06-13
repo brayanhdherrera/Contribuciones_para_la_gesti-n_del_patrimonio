@@ -707,7 +707,7 @@ def _importar_desde_xml(content, parse_fila_fn):
     return datos
 
 
-# ── Importar Contribuciones ────────────────────────────────────────────────
+# ── Importar Contribuciones (un solo paso: subir → guardar en BD → mostrar) ─
 
 class ImportarContribucionView(LoginRequiredMixin, TemplateView):
     template_name = 'contribuciones/contribucion_import.html'
@@ -715,21 +715,12 @@ class ImportarContribucionView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['form'] = ImportarContribucionForm()
-        ctx['confirmar_form'] = ConfirmarImportacionForm()
         return ctx
 
     def post(self, request, *args, **kwargs):
-        if 'confirmar' in request.POST:
-            return self._confirmar_importacion(request)
-        return self._subir_y_previsualizar(request)
-
-    def _subir_y_previsualizar(self, request):
         form = ImportarContribucionForm(request.POST, request.FILES)
         if not form.is_valid():
-            return render(request, self.template_name, {
-                'form': form,
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
+            return render(request, self.template_name, {'form': form})
 
         archivo = request.FILES['archivo']
         filename = archivo.name
@@ -740,49 +731,17 @@ class ImportarContribucionView(LoginRequiredMixin, TemplateView):
             )
         except ValueError as e:
             messages.error(request, f'✖ {e}')
-            return render(request, self.template_name, {
-                'form': ImportarContribucionForm(),
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
+            return render(request, self.template_name, {'form': ImportarContribucionForm()})
 
         if not datos:
             messages.warning(request, '⚠ No se encontraron datos válidos en el archivo.')
-            return render(request, self.template_name, {
-                'form': ImportarContribucionForm(),
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
-
-        datos_json = json.dumps(datos, default=str)
-        confirmar_form = ConfirmarImportacionForm(initial={
-            'datos': datos_json,
-            'nombre_archivo': filename,
-        })
-
-        total_monto = sum(float(d.get('monto_cup', 0)) for d in datos)
-
-        return render(request, self.template_name, {
-            'form': ImportarContribucionForm(),
-            'confirmar_form': confirmar_form,
-            'datos': datos,
-            'filename': filename,
-            'total_datos': len(datos),
-            'total_monto': total_monto,
-            'show_preview': True,
-        })
-
-    def _confirmar_importacion(self, request):
-        form = ConfirmarImportacionForm(request.POST)
-        if not form.is_valid():
-            messages.error(request, '✖ Error al confirmar la importación.')
-            return redirect('contribuciones:importar')
-
-        datos = json.loads(form.cleaned_data['datos'])
-        filename = form.cleaned_data['nombre_archivo']
+            return render(request, self.template_name, {'form': ImportarContribucionForm()})
 
         creados = errores = 0
+        registros_creados = []
         for fila in datos:
             try:
-                Contribucion.objects.create(
+                obj = Contribucion.objects.create(
                     nombre=fila.get('nombre', ''),
                     obligacion_pago=fila.get('obligacion_pago', 'contribucion'),
                     numero_identidad=fila.get('numero_identidad', ''),
@@ -798,17 +757,31 @@ class ImportarContribucionView(LoginRequiredMixin, TemplateView):
                     registrado_por=request.user,
                 )
                 creados += 1
+                registros_creados.append(fila)
             except Exception:
                 errores += 1
 
-        msg = f'✔ Importación completada: {creados} contribuciones guardadas.'
-        if errores:
-            msg += f' {errores} filas omitidas por errores.'
-        messages.success(request, msg)
-        return redirect('contribuciones:lista')
+        total_monto = sum(float(d.get('monto_cup', 0)) for d in registros_creados)
+
+        messages.success(
+            request,
+            f'✔ Importación completada: {creados} contribuciones guardadas '
+            f'directamente en la base de datos.'
+            + (f' {errores} filas omitidas por errores.' if errores else '')
+        )
+
+        return render(request, self.template_name, {
+            'form': ImportarContribucionForm(),
+            'datos': registros_creados,
+            'filename': filename,
+            'total_datos': creados,
+            'total_monto': total_monto,
+            'total_errores': errores,
+            'show_results': True,
+        })
 
 
-# ── Importar Contribuyentes ────────────────────────────────────────────────
+# ── Importar Contribuyentes (un solo paso: subir → guardar en BD → mostrar) ─
 
 class ImportarContribuyenteView(LoginRequiredMixin, TemplateView):
     template_name = 'contribuciones/contribuyente_import.html'
@@ -816,21 +789,12 @@ class ImportarContribuyenteView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['form'] = ImportarContribuyenteForm()
-        ctx['confirmar_form'] = ConfirmarImportacionForm()
         return ctx
 
     def post(self, request, *args, **kwargs):
-        if 'confirmar' in request.POST:
-            return self._confirmar_importacion(request)
-        return self._subir_y_previsualizar(request)
-
-    def _subir_y_previsualizar(self, request):
         form = ImportarContribuyenteForm(request.POST, request.FILES)
         if not form.is_valid():
-            return render(request, self.template_name, {
-                'form': form,
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
+            return render(request, self.template_name, {'form': form})
 
         archivo = request.FILES['archivo']
         filename = archivo.name
@@ -841,43 +805,14 @@ class ImportarContribuyenteView(LoginRequiredMixin, TemplateView):
             )
         except ValueError as e:
             messages.error(request, f'✖ {e}')
-            return render(request, self.template_name, {
-                'form': ImportarContribuyenteForm(),
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
+            return render(request, self.template_name, {'form': ImportarContribuyenteForm()})
 
         if not datos:
             messages.warning(request, '⚠ No se encontraron datos válidos en el archivo.')
-            return render(request, self.template_name, {
-                'form': ImportarContribuyenteForm(),
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
-
-        datos_json = json.dumps(datos, default=str)
-        confirmar_form = ConfirmarImportacionForm(initial={
-            'datos': datos_json,
-            'nombre_archivo': filename,
-        })
-
-        return render(request, self.template_name, {
-            'form': ImportarContribuyenteForm(),
-            'confirmar_form': confirmar_form,
-            'datos': datos,
-            'filename': filename,
-            'total_datos': len(datos),
-            'show_preview': True,
-        })
-
-    def _confirmar_importacion(self, request):
-        form = ConfirmarImportacionForm(request.POST)
-        if not form.is_valid():
-            messages.error(request, '✖ Error al confirmar la importación.')
-            return redirect('contribuciones:contribuyente_importar')
-
-        datos = json.loads(form.cleaned_data['datos'])
-        filename = form.cleaned_data['nombre_archivo']
+            return render(request, self.template_name, {'form': ImportarContribuyenteForm()})
 
         creados = errores = 0
+        registros_creados = []
         for fila in datos:
             try:
                 Contribuyente.objects.create(
@@ -891,11 +826,22 @@ class ImportarContribuyenteView(LoginRequiredMixin, TemplateView):
                     nombre_establecimiento=fila.get('nombre_establecimiento', ''),
                 )
                 creados += 1
+                registros_creados.append(fila)
             except Exception:
                 errores += 1
 
-        msg = f'✔ Importación completada: {creados} contribuyentes guardados.'
-        if errores:
-            msg += f' {errores} filas omitidas por errores.'
-        messages.success(request, msg)
-        return redirect('contribuciones:contribuyente_lista')
+        messages.success(
+            request,
+            f'✔ Importación completada: {creados} contribuyentes guardados '
+            f'directamente en la base de datos.'
+            + (f' {errores} filas omitidas por errores.' if errores else '')
+        )
+
+        return render(request, self.template_name, {
+            'form': ImportarContribuyenteForm(),
+            'datos': registros_creados,
+            'filename': filename,
+            'total_datos': creados,
+            'total_errores': errores,
+            'show_results': True,
+        })

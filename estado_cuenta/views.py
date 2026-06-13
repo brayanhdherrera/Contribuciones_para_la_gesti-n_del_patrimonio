@@ -185,23 +185,12 @@ class ImportarEstadoCuentaView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['form'] = ImportarEstadoCuentaForm()
-        ctx['confirmar_form'] = ConfirmarImportacionForm()
         return ctx
 
     def post(self, request, *args, **kwargs):
-        if 'confirmar' in request.POST:
-            return self._confirmar_importacion(request)
-        return self._subir_y_previsualizar(request)
-
-    # ── Paso 1: Subir y previsualizar ─────────────────────────────────────
-
-    def _subir_y_previsualizar(self, request):
         form = ImportarEstadoCuentaForm(request.POST, request.FILES)
         if not form.is_valid():
-            return render(request, self.template_name, {
-                'form': form,
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
+            return render(request, self.template_name, {'form': form})
 
         archivo = request.FILES['archivo']
         filename = archivo.name
@@ -209,10 +198,7 @@ class ImportarEstadoCuentaView(LoginRequiredMixin, TemplateView):
 
         if ext not in ('xml', 'pdf', 'txt', 'csv'):
             messages.error(request, '✖ Formato no soportado. Solo XML, PDF y TXT/CSV.')
-            return render(request, self.template_name, {
-                'form': form,
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
+            return render(request, self.template_name, {'form': form})
 
         try:
             if ext == 'xml':
@@ -223,17 +209,11 @@ class ImportarEstadoCuentaView(LoginRequiredMixin, TemplateView):
                 datos = self._extraer_txt(archivo)
         except ValueError as e:
             messages.error(request, f'✖ {e}')
-            return render(request, self.template_name, {
-                'form': form,
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
+            return render(request, self.template_name, {'form': ImportarEstadoCuentaForm()})
 
         if not datos:
             messages.warning(request, '⚠ No se encontraron datos válidos en el archivo.')
-            return render(request, self.template_name, {
-                'form': form,
-                'confirmar_form': ConfirmarImportacionForm(),
-            })
+            return render(request, self.template_name, {'form': ImportarEstadoCuentaForm()})
 
         archivo.seek(0)
         archivo_obj = ArchivoImportado.objects.create(
@@ -242,46 +222,8 @@ class ImportarEstadoCuentaView(LoginRequiredMixin, TemplateView):
             total_movimientos=0,
         )
 
-        datos_json = json.dumps(datos, default=str)
-        confirmar_form = ConfirmarImportacionForm(initial={
-            'datos': datos_json,
-            'nombre_archivo': filename,
-            'archivo_id': archivo_obj.pk,
-        })
-
-        total_principal = sum(float(_parse_decimal(d.get('principal', 0))) for d in datos)
-        total_impuesto = sum(float(_parse_decimal(d.get('impuesto_total', 0))) for d in datos)
-
-        return render(request, self.template_name, {
-            'form': ImportarEstadoCuentaForm(),
-            'confirmar_form': confirmar_form,
-            'datos': datos,
-            'filename': filename,
-            'total_datos': len(datos),
-            'total_principal': total_principal,
-            'total_impuesto': total_impuesto,
-            'show_preview': True,
-        })
-
-    # ── Paso 2: Confirmar importación ─────────────────────────────────────
-
-    def _confirmar_importacion(self, request):
-        form = ConfirmarImportacionForm(request.POST)
-        if not form.is_valid():
-            messages.error(request, '✖ Error al confirmar la importación.')
-            return redirect('estado_cuenta:importar')
-
-        datos = form.cleaned_data['datos']
-        filename = form.cleaned_data['nombre_archivo']
-        archivo_id = form.cleaned_data['archivo_id']
-
-        try:
-            archivo_obj = ArchivoImportado.objects.get(pk=archivo_id)
-        except ArchivoImportado.DoesNotExist:
-            messages.error(request, '✖ El archivo original no se encuentra.')
-            return redirect('estado_cuenta:importar')
-
         creados = errores = 0
+        registros_creados = []
         for fila in datos:
             try:
                 producto = _parse_fecha(fila.get('producto'))
@@ -310,17 +252,33 @@ class ImportarEstadoCuentaView(LoginRequiredMixin, TemplateView):
                     archivo_original=filename,
                 )
                 creados += 1
+                registros_creados.append(fila)
             except Exception:
                 errores += 1
 
         archivo_obj.total_movimientos = creados
         archivo_obj.save()
 
-        msg = f'✔ Importación completada: {creados} declaraciones guardadas.'
-        if errores:
-            msg += f' {errores} filas omitidas por errores.'
-        messages.success(request, msg)
-        return redirect('estado_cuenta:lista')
+        total_principal = sum(float(_parse_decimal(d.get('principal', 0))) for d in registros_creados)
+        total_impuesto = sum(float(_parse_decimal(d.get('impuesto_total', 0))) for d in registros_creados)
+
+        messages.success(
+            request,
+            f'✔ Importación completada: {creados} declaraciones guardadas '
+            f'directamente en la base de datos.'
+            + (f' {errores} filas omitidas por errores.' if errores else '')
+        )
+
+        return render(request, self.template_name, {
+            'form': ImportarEstadoCuentaForm(),
+            'datos': registros_creados,
+            'filename': filename,
+            'total_datos': creados,
+            'total_principal': total_principal,
+            'total_impuesto': total_impuesto,
+            'total_errores': errores,
+            'show_results': True,
+        })
 
     # ── Extracción XML ─────────────────────────────────────────────────────
 
